@@ -43,7 +43,7 @@ Sample_Tracer_SLTL::Sample_Tracer_SLTL(z3::context& context,
 	number_Of_Variables = terms.size();
 
 
-	for (std::pair<std::vector<std::vector<std::string>>, int> word : sample) {
+	for (std::pair<std::vector<std::vector<signal_t>>, int> word : sample) {
 		sample_Sizes.push_back(std::make_pair(word.first.size(), word.second));
 	}
 }
@@ -66,12 +66,12 @@ void Sample_Tracer_SLTL::initialize()
 void Sample_Tracer_SLTL::add_Formulas_Atomic(int iteration)
 {
 	int word_Index = 0;
-	for (std::pair<std::vector<std::vector<std::string>>, int> word : sample) {
+	for (std::pair<std::vector<std::vector<signal_t>>, int> word : sample) {
 		for (int p = 0; p < number_Of_Variables; p++) {
 
 			z3::expr_vector atomic_Vector(context);
 			int t = 0;
-			for (std::vector<std::string> letter : word.first) {
+			for (std::vector<signal_t> letter : word.first) {
 
 
 				atomic_Vector.push_back(variables_Y_Word_i_t[word_Index][iteration][t] == (terms[p].compute_Term(letter, variables_Constants, context)));
@@ -110,7 +110,7 @@ void Sample_Tracer_SLTL::create_Sample(std::vector<std::string> input_Sample_SLT
 
 		int second_Component = std::stoi(line);
 
-		// make the string to a vector of vector of bools
+		// make the string to a vector of vector of signal_t
 
 		string_stream = std::stringstream(remaining_word);
 
@@ -121,16 +121,26 @@ void Sample_Tracer_SLTL::create_Sample(std::vector<std::string> input_Sample_SLT
 			initial_seperation.push_back(line);
 		}
 
-		// make string to bools
+		// make string to 'signal_t's
 
-		std::vector<std::vector<std::string>> first_Component;
+		std::vector<std::vector<signal_t>> first_Component;
 		for (std::string s : initial_seperation) {
 			string_stream = std::stringstream(s);
-			std::vector<std::string> letter;
+			std::vector<signal_t> letter;
 			while (std::getline(string_stream, line, ',')) {
-
-
-				letter.push_back(line);
+				signal_t sig;
+				if (line.at(0) == '[') { // example: "[0.9,1.1]"
+					std::string lower_bound, upper_bound;
+					lower_bound = line;
+					lower_bound.erase(0,1); // erase '['
+					std::getline(string_stream, line, ',');
+					upper_bound = line;
+					upper_bound.pop_back(); // erase ']'
+					sig = std::make_pair(lower_bound,upper_bound);
+				} else { // example: "1.0"
+					sig = std::make_pair(line,line);
+				}
+				letter.push_back(sig);
 			}
 			first_Component.push_back(letter);
 		}

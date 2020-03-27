@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,7 @@ public:
 
 protected:
 
-	std::vector<std::pair<std::vector<std::vector<std::string>>, int>> sample;
+	std::vector<std::pair<std::vector<std::vector<signal_t>>, int>> sample;
 
 
 	std::vector<Term_SLTL>& terms;

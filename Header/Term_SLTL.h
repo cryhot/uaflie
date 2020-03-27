@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,8 @@ SOFTWARE.
 #include "z3++.h"
 #include <vector>
 
+typedef std::pair<std::string,std::string> signal_t;
+
 class Term_SLTL
 {
 public:
@@ -43,7 +45,7 @@ public:
 
 	Term_SLTL(std::string &input_Line);
 
-	z3::expr compute_Term(std::vector<std::string>& signals, z3::expr_vector& constants, z3::context& context);
+	z3::expr compute_Term(std::vector<signal_t>& signals, z3::expr_vector& constants, z3::context& context);
 
 	std::string print_Term(z3::model& model, z3::expr_vector& constants);
 };

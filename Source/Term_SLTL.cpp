@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -87,7 +87,7 @@ Term_SLTL::Term_SLTL(std::string & input_Line)
 }
 
 
-z3::expr Term_SLTL::compute_Term(std::vector<std::string>& signals, z3::expr_vector& constants, z3::context& context) {
+z3::expr Term_SLTL::compute_Term(std::vector<signal_t>& signals, z3::expr_vector& constants, z3::context& context) {
 
 
 	z3::expr left(context);
@@ -119,7 +119,7 @@ z3::expr Term_SLTL::compute_Term(std::vector<std::string>& signals, z3::expr_vec
 	case 'c':
 		return constants[var];
 	default:
-		return context.real_val(signals[var].c_str());
+		return context.real_val(signals[var].first.c_str()); // TODO: handle full range
 	}
 }
 
