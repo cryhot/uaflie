@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -158,6 +158,16 @@ protected:
 	The number of variables used in each letter.
 	*/
 	int number_Of_Variables;
+
+	/*
+	The maximum size a word can have (without repetition)
+	*/
+	int max_Word_Size;
+
+	/*
+	The maximum timestamp we have to check.
+	*/
+	int max_Word_Period;
 
 	/*
 	Is true if an incremental solver is used

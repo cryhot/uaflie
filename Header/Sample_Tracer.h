@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -51,6 +51,15 @@ public:
 
 
 	std::vector<std::pair<int, int>> sample_Sizes;
+
+	/*
+	The maximum size a word can have (without repetition)
+	*/
+	int max_Word_Size;
+	/*
+	The maximum timestamp we have to check.
+	*/
+	int max_Word_Period;
 
 	//Methods:---------------------------------------------------------------
 	
