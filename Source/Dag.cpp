@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -101,6 +101,19 @@ void Dag::add_Variables(int iteration)
 		variables_Right.push_back(context.bool_const(int_To_String.str().c_str()));
 	}
 	variables_right_i_j.push_back(variables_Right);
+
+	//add the parameter_n_p
+	z3::expr_vector variables_Parameter(context);
+	for (int p = 0; p < 2; p++) {
+		std::stringstream int_To_String;
+		int_To_String << "p" << p << "_" << iteration;
+		switch (p) {
+			case 0:
+			case 1:
+				variables_Parameter.push_back(context.int_const(int_To_String.str().c_str())); break;
+		}
+	}
+	variables_parameter_i_p.push_back(variables_Parameter);
 }
 
 void Dag::add_Formulas(int iteration) {

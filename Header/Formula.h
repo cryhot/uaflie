@@ -40,6 +40,7 @@ struct Node
 	int formula;
 	Node *left;
 	Node *right;
+	int int_parameter[2];
 };
 
 /*
@@ -272,6 +273,11 @@ protected:
 	Solves the current iteration with an optimizer.
 	*/
 	std::pair<bool, std::string> solve_Iteration_Optimize();
+
+	/*
+	Add an interval representation to the string being constructed.
+	*/
+	virtual void print_bounds(std::ostream& stream, int a, int b);
 
 	/*
 	Constructs a string representing the formula of the tree.
