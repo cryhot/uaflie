@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -231,7 +231,8 @@ void solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SL
 	}
 	formula->set_Vebose(verbose);
 	formula->initialize();
-	formula->find_LTL();
+	Solver_Result result = formula->find_LTL();
+	std::cout << result.formula << std::endl;
 }
 
 /*
