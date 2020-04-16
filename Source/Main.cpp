@@ -190,31 +190,26 @@ std::vector<std::vector<std::string>> split_Input_SLTL(char* input) {
 }
 
 /*
-Executes the algorithm for given parameters for a single input file.
+Executes the algorithm for given parameters for a single input.
 
 	using_Grammar: is true if a grammar should be used in all files
 	using_Incremental: is true if an incremental solver should be used in all files
 	using_SLTL: is true if all files are SLTL files
 	optimized_Run: gives the iteration in which max sat is used instead of sat
-	input: the paths to the input file
+	input_Split: the different sections of the file
 */
-void solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, char * input, int verbose)
-{
+std::string solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, std::vector<std::vector<std::string>> &input_Split, int verbose) {
 	Formula* formula;
-	std::vector<std::vector<std::string>> input_Split;
 	int grammar_Index;
 
-	if (!using_SLTL) {
+	std::vector<std::string> positive_Sample_String = input_Split[0];
+	std::vector<std::string> negative_Sample_String = input_Split[1];
 
-		input_Split = split_Input_LTL(input);
-		if (input_Split.size() < 1) return;
-		formula = new Formula_LTL(input_Split[0], input_Split[1]);
+	if (!using_SLTL) {
+		formula = new Formula_LTL(positive_Sample_String, negative_Sample_String);
 		grammar_Index = 4;
-	}
-	else {
-		input_Split = split_Input_SLTL(input);
-		if (input_Split.size() < 1) return;
-		formula = new Formula_SLTL(input_Split[0], input_Split[1], input_Split[4]);
+	} else {
+		formula = new Formula_SLTL(positive_Sample_String, negative_Sample_String, input_Split[4]);
 		grammar_Index = 5;
 	}
 
@@ -233,6 +228,107 @@ void solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SL
 	formula->initialize();
 	Solver_Result result = formula->find_LTL();
 	std::cout << result.formula << std::endl;
+
+	std::string nodeResult = "";
+
+	// std::cout << "\nPOSITIVE CHILD:" << std::endl;
+	std::cout << "\n\e[47;32m POSITIVE CHILD \e[m";
+	std::cout << " (" << result.false_positive.size() << "/" << positive_Sample_String.size()-result.false_negative.size()+result.false_positive.size() << " misclassified)";
+	std::cout << " max=" << optimized_Run;
+	std::cout << ":" << std::endl;
+	if (result.false_positive.empty()) {
+		// positive well sorted
+		std::cout << "⊤" << std::endl;
+		nodeResult = result.formula;
+	} else {
+		std::vector<std::string> next_negative_Sample_String; // all negative words classified as positive
+		for (unsigned int i : result.false_positive) {
+			next_negative_Sample_String.push_back(negative_Sample_String[i]);
+		}
+		std::vector<std::string> next_positive_Sample_String; // all positive words classified as positive
+		unsigned int j = 0;
+		for (unsigned int i = 0; i < positive_Sample_String.size(); i++) {
+			if (j < result.false_negative.size() && i == result.false_negative[j]) j++;
+			else next_positive_Sample_String.push_back(positive_Sample_String[i]);
+		}
+		input_Split[0] = next_positive_Sample_String;
+		input_Split[1] = next_negative_Sample_String;
+		std::string posResult = solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input_Split, verbose);
+		nodeResult = "("+result.formula+"&&"+posResult+")";
+	}
+
+	// std::cout << "\nNEGATIVE CHILD:" << std::endl;
+	std::cout << "\n\e[47;31m NEGATIVE CHILD \e[m";
+	std::cout << " (" << result.false_negative.size() << "/" << negative_Sample_String.size()-result.false_positive.size()+result.false_negative.size() << " misclassified)";
+	std::cout << " max=" << optimized_Run;
+	std::cout << ":" << std::endl;
+	if (result.false_negative.empty()) {
+		// negative well sorted
+		std::cout << "⊥" << std::endl;
+	} else {
+		std::vector<std::string> next_positive_Sample_String; // all positive words classified as negative
+		for (unsigned int i : result.false_negative) {
+			next_positive_Sample_String.push_back(positive_Sample_String[i]);
+		}
+		std::vector<std::string> next_negative_Sample_String; // all negative words classified as negative
+		unsigned int j = 0;
+		for (unsigned int i = 0; i < negative_Sample_String.size(); i++) {
+			if (j < result.false_positive.size() && i == result.false_positive[j]) j++;
+			else next_negative_Sample_String.push_back(negative_Sample_String[i]);
+		}
+		// std::cout << "HERE 1" << std::endl;
+		input_Split[0] = next_positive_Sample_String;
+		input_Split[1] = next_negative_Sample_String;
+		std::string negResult = solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input_Split, verbose);
+		nodeResult = "("+nodeResult+"||(!"+result.formula+"&&"+negResult+"))";
+	}
+	return nodeResult;
+}
+
+/*
+Executes the algorithm for given parameters for a single input file.
+
+	using_Grammar: is true if a grammar should be used in all files
+	using_Incremental: is true if an incremental solver should be used in all files
+	using_SLTL: is true if all files are SLTL files
+	optimized_Run: gives the iteration in which max sat is used instead of sat
+	input: the paths to the input file
+*/
+void solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, char * input, int verbose)
+{
+	std::vector<std::vector<std::string>> input_Split;
+
+	if (!using_SLTL) {
+
+		input_Split = split_Input_LTL(input);
+		if (input_Split.size() < 1) return;
+	}
+	else {
+		input_Split = split_Input_SLTL(input);
+		if (input_Split.size() < 1) return;
+	}
+
+	// std::ofstream myfile;
+	// myfile.open("results.txt");
+
+	clock_t start = clock();
+
+	std::cout << "\n\e[47;33m ROOT NODE \e[m";
+	std::cout << " (" << input_Split[0].size() << "/" << input_Split[0].size()+input_Split[1].size() << " positive)";
+	std::cout << " max=" << optimized_Run;
+	std::cout << ":" << std::endl;
+	std::string nodeResult = solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input_Split, verbose);
+
+	// myfile << "hello " << input;
+
+	clock_t end = clock();
+	double time = (end - start) / (double)CLOCKS_PER_SEC;
+
+	std::cout << "####################################" << std::endl;
+	std::cout << nodeResult << std::endl;
+	std::cout << "total execution time: " << time << std::endl;
+
+	// myfile.close();
 }
 
 /*
