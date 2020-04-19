@@ -189,6 +189,15 @@ std::vector<std::vector<std::string>> split_Input_SLTL(char* input) {
 	return result;
 }
 
+struct File_Result
+{
+	bool success;
+	std::string formula;
+	std::vector<std::string> tree_formulas;
+	int node_count;
+	int depth;
+};
+
 /*
 Executes the algorithm for given parameters for a single input.
 
@@ -198,7 +207,7 @@ Executes the algorithm for given parameters for a single input.
 	optimized_Run: gives the iteration in which max sat is used instead of sat
 	input_Split: the different sections of the file
 */
-std::string solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, std::vector<std::vector<std::string>> &input_Split, int verbose) {
+File_Result solve_Single_Dataset(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, std::vector<std::vector<std::string>> &input_Split, int verbose) {
 	Formula* formula;
 	int grammar_Index;
 
@@ -229,17 +238,48 @@ std::string solve_Single_File(bool using_Grammar, bool using_Incremental, bool u
 	Solver_Result result = formula->find_LTL();
 	std::cout << result.formula << std::endl;
 
-	std::string nodeResult = "";
+	File_Result nodeResult;
+	int positive_dataset_size = positive_Sample_String.size()-result.false_negative.size()+result.false_positive.size();
+	int negative_dataset_size = negative_Sample_String.size()-result.false_positive.size()+result.false_negative.size();
+	nodeResult.success = positive_dataset_size>0 && negative_dataset_size>0;
+	if (nodeResult.success && (result.false_negative.size()==positive_Sample_String.size() || result.false_positive.size()==negative_Sample_String.size())) {
+		// swap samples
+		unsigned int j;
+		std::vector<unsigned int> false_negative;
+		j = 0;
+		for (unsigned int i = 0; i < positive_Sample_String.size(); i++) {
+			if (j < result.false_negative.size() && i == result.false_negative[j]) j++;
+			else false_negative.push_back(i);
+		}
+		std::vector<unsigned int> false_positive;
+		j = 0;
+		for (unsigned int i = 0; i < negative_Sample_String.size(); i++) {
+			if (j < result.false_positive.size() && i == result.false_positive[j]) j++;
+			else false_positive.push_back(i);
+		}
+		result.formula = "!"+result.formula;
+		result.false_negative = false_negative;
+		result.false_positive = false_positive;
+		positive_dataset_size = positive_Sample_String.size()-result.false_negative.size()+result.false_positive.size();
+		negative_dataset_size = negative_Sample_String.size()-result.false_positive.size()+result.false_negative.size();
+	}
+
+	nodeResult.formula = result.formula;
+	nodeResult.tree_formulas.push_back(result.formula);
+	nodeResult.node_count = 1;
+	nodeResult.depth = 1;
+	if (!nodeResult.success) nodeResult.tree_formulas.push_back("...");
+	if (!nodeResult.success) return nodeResult;
 
 	// std::cout << "\nPOSITIVE CHILD:" << std::endl;
 	std::cout << "\n\e[47;32m POSITIVE CHILD \e[m";
-	std::cout << " (" << result.false_positive.size() << "/" << positive_Sample_String.size()-result.false_negative.size()+result.false_positive.size() << " misclassified)";
+	std::cout << " (" << result.false_positive.size() << "/" << positive_dataset_size << " misclassified)";
 	std::cout << " max=" << optimized_Run;
 	std::cout << ":" << std::endl;
 	if (result.false_positive.empty()) {
 		// positive well sorted
 		std::cout << "⊤" << std::endl;
-		nodeResult = result.formula;
+		nodeResult.tree_formulas.push_back("⊤");
 	} else {
 		std::vector<std::string> next_negative_Sample_String; // all negative words classified as positive
 		for (unsigned int i : result.false_positive) {
@@ -253,18 +293,25 @@ std::string solve_Single_File(bool using_Grammar, bool using_Incremental, bool u
 		}
 		input_Split[0] = next_positive_Sample_String;
 		input_Split[1] = next_negative_Sample_String;
-		std::string posResult = solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input_Split, verbose);
-		nodeResult = "("+result.formula+"&&"+posResult+")";
+		File_Result posResult = solve_Single_Dataset(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input_Split, verbose);
+
+		nodeResult.formula = "("+result.formula+"&&"+posResult.formula+")";
+		for (std::string node_formula : posResult.tree_formulas) nodeResult.tree_formulas.push_back(node_formula);
+		nodeResult.success &= posResult.success;
+		nodeResult.node_count += posResult.node_count;
+		if (nodeResult.depth < posResult.depth+1) nodeResult.depth = posResult.depth+1;
+		if (!nodeResult.success) return nodeResult;
 	}
 
 	// std::cout << "\nNEGATIVE CHILD:" << std::endl;
 	std::cout << "\n\e[47;31m NEGATIVE CHILD \e[m";
-	std::cout << " (" << result.false_negative.size() << "/" << negative_Sample_String.size()-result.false_positive.size()+result.false_negative.size() << " misclassified)";
+	std::cout << " (" << result.false_negative.size() << "/" << negative_dataset_size << " misclassified)";
 	std::cout << " max=" << optimized_Run;
 	std::cout << ":" << std::endl;
 	if (result.false_negative.empty()) {
 		// negative well sorted
 		std::cout << "⊥" << std::endl;
+		nodeResult.tree_formulas.push_back("⊥");
 	} else {
 		std::vector<std::string> next_positive_Sample_String; // all positive words classified as negative
 		for (unsigned int i : result.false_negative) {
@@ -276,11 +323,16 @@ std::string solve_Single_File(bool using_Grammar, bool using_Incremental, bool u
 			if (j < result.false_positive.size() && i == result.false_positive[j]) j++;
 			else next_negative_Sample_String.push_back(negative_Sample_String[i]);
 		}
-		// std::cout << "HERE 1" << std::endl;
 		input_Split[0] = next_positive_Sample_String;
 		input_Split[1] = next_negative_Sample_String;
-		std::string negResult = solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input_Split, verbose);
-		nodeResult = "("+nodeResult+"||(!"+result.formula+"&&"+negResult+"))";
+		File_Result negResult = solve_Single_Dataset(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input_Split, verbose);
+
+		nodeResult.formula = "("+nodeResult.formula+"||(!"+result.formula+"&&"+negResult.formula+"))";
+		for (std::string node_formula : negResult.tree_formulas) nodeResult.tree_formulas.push_back(node_formula);
+		nodeResult.success &= negResult.success;
+		nodeResult.node_count += negResult.node_count;
+		if (nodeResult.depth < negResult.depth+1) nodeResult.depth = negResult.depth+1;
+		if (!nodeResult.success) return nodeResult;
 	}
 	return nodeResult;
 }
@@ -294,22 +346,32 @@ Executes the algorithm for given parameters for a single input file.
 	optimized_Run: gives the iteration in which max sat is used instead of sat
 	input: the paths to the input file
 */
-void solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, char * input, int verbose)
+std::string solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, char * input, int verbose)
 {
 	std::vector<std::vector<std::string>> input_Split;
 
 	if (!using_SLTL) {
 
 		input_Split = split_Input_LTL(input);
-		if (input_Split.size() < 1) return;
+		if (input_Split.size() < 1) return input;
 	}
 	else {
 		input_Split = split_Input_SLTL(input);
-		if (input_Split.size() < 1) return;
+		if (input_Split.size() < 1) return input;
 	}
 
-	// std::ofstream myfile;
-	// myfile.open("results.txt");
+
+	std::stringstream csv_result;
+	/* "File Name" */
+	csv_result << input;
+	/* "Traces" */
+	csv_result << "," << input_Split[0].size()+input_Split[1].size();
+	/* "Positive Traces" */
+	csv_result << "," << input_Split[0].size();
+	/* "Negative Traces" */
+	csv_result << "," << input_Split[1].size();
+	/* "Method" */
+	csv_result << "," << "DecisionTree[max=" << optimized_Run << "]";
 
 	clock_t start = clock();
 
@@ -317,18 +379,38 @@ void solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SL
 	std::cout << " (" << input_Split[0].size() << "/" << input_Split[0].size()+input_Split[1].size() << " positive)";
 	std::cout << " max=" << optimized_Run;
 	std::cout << ":" << std::endl;
-	std::string nodeResult = solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input_Split, verbose);
-
-	// myfile << "hello " << input;
+	File_Result nodeResult = solve_Single_Dataset(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input_Split, verbose);
 
 	clock_t end = clock();
 	double time = (end - start) / (double)CLOCKS_PER_SEC;
 
 	std::cout << "####################################" << std::endl;
-	std::cout << nodeResult << std::endl;
+	std::cout << nodeResult.formula << std::endl;
 	std::cout << "total execution time: " << time << std::endl;
+	std::cout << "success = " << nodeResult.success << std::endl;
+	std::cout << "node count = " << nodeResult.node_count << std::endl;
+	std::cout << "depth = " << nodeResult.depth << std::endl;
 
-	// myfile.close();
+
+	/* "Success" */
+	csv_result << "," << nodeResult.success;
+	/* "Time passed" */
+	csv_result << "," << time;
+	/* "Formula" */
+	csv_result << "," << nodeResult.formula;
+	/* "Tree Nodes" */
+	csv_result << "," << nodeResult.node_count;
+	/* "Tree Depth" */
+	csv_result << "," << nodeResult.depth;
+	/* "Formula Tree" */
+	csv_result << ",";
+	std::string last_formula = nodeResult.tree_formulas.back();
+	nodeResult.tree_formulas.pop_back();
+	for (std::string formula : nodeResult.tree_formulas) csv_result << formula << ";";
+	csv_result << last_formula ;
+	nodeResult.tree_formulas.push_back(last_formula);
+
+	return csv_result.str();
 }
 
 /*
@@ -343,24 +425,34 @@ Executes the algorithm for given parameters for a set of inputs.
 void solve_Multiple_Files(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, std::vector<char*> input_Files, int verbose) {
 
 
-	std::ofstream myfile;
-	myfile.open("results.txt");
+	std::ofstream csv_result;
+	csv_result.open("results.csv");
+
+	csv_result << "File Name";
+	csv_result << ",Traces";
+	csv_result << ",Positive Traces";
+	csv_result << ",Negative Traces";
+	csv_result << ",Method";
+	csv_result << ",Success";
+	csv_result << ",Time passed";
+	csv_result << ",Formula";
+	csv_result << ",Tree Nodes";
+	csv_result << ",Tree Depth";
+	csv_result << ",Formula Tree";
+	csv_result << "\n";
+	csv_result.flush();
 
 	std::string result;
 	for (char* file : input_Files) {
-		clock_t start = clock();
 
-		solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, file, verbose);
+		std::cout << "\nSOLVING " << file << std::endl;
 
-		clock_t end = clock();
+		result = solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, file, verbose);
 
-
-		myfile << result << "	";
-
-		unsigned long time = (end - start);
-		myfile << time << "\n";
+		csv_result << result << "\n";
+		csv_result.flush();
 	}
-	myfile.close();
+	csv_result.close();
 
 }
 
