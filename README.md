@@ -134,8 +134,9 @@ Here i will explain which command line arguments can be used to solve the variou
 |-max \<iteration>|Specifies the maximal size a formula should take. If this argument is specified the [optimizing](#optimizing) problem will be solved. This argument can be used in both the [LTL](#ltl) and [SLTL](#sltl) case.
 |-g | Specifies whether a grammar like in section [CFG](#using-context-free-grammar) is used to constrain the output formulas. This option can only be used in the [LTL](#ltl) case. 
 |-sltl| This is used if the  [SLTL problem](#sltl) should be solved instead of the [LTL problem](#ltl).
-|-v| Outputs the computation time at the end of the program.
-|-vv| Outputs the computation time at the end of the program as well as the start of each iteration of the algorithm.
+|-v| Outputs the formula at each node of the decision tree as well as the computation time at the end of the algorithm at each node.
+|-vv| On top on the preceding, outputs the start of each iteration of the algorithm at each node.
+|-vvv| On top on the preceding, outputs the sample classification at the end of the algorithm at each node.
 |-h| Outputs the help.
 	
 
