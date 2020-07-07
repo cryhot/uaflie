@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,9 +33,9 @@ void Sample_Tracer::add_Variables(int iteration)
 {
 	//add the Y_word_n_t
 	int word_Index = 0;
-	for (std::pair<int, int> word : sample_Sizes) {
+	for (Trace_Metadata word : sample_Metadatas) {
 		z3::expr_vector temp(context);
-		for (int t = 0; t < word.first; t++) {
+		for (int t = 0; t < word.size; t++) {
 			std::stringstream int_To_String;
 			int_To_String << "Y_" << sample_Name << "_" << word_Index << "_" << iteration << "_" << t;
 			temp.push_back(context.bool_const(int_To_String.str().c_str()));
@@ -139,13 +139,13 @@ void Sample_Tracer::make_Formula_Unary(Operator_Unary& op, int iteration, int op
 {
 
 	int word_Index = 0;
-	for (std::pair<int, int> word : sample_Sizes) {
+	for (Trace_Metadata word : sample_Metadatas) {
 
 		z3::expr operator_Expr(context);
 
 		z3::expr_vector left_Conjunction(context);
 		for (int j = 0; j < iteration; j++) {
-			z3::expr inner_Formula = op.make_Inner_Formula(iteration, j, word_Index, context, word.first, word.second, variables_Y_Word_i_t);
+			z3::expr inner_Formula = op.make_Inner_Formula(iteration, j, word_Index, context, word.size, word.repetition, variables_Y_Word_i_t);
 			z3::expr implication = z3::implies(dag.variables_left_i_j[iteration][j], inner_Formula);
 			left_Conjunction.push_back(implication);
 		}
@@ -164,14 +164,14 @@ void Sample_Tracer::make_Formula_Unary(Operator_Unary& op, int iteration, int op
 void Sample_Tracer::make_Formula_Binary(Operator_Binary& op, int iteration, int operator_Index)
 {
 	int word_Index = 0;
-	for (std::pair<int, int> word : sample_Sizes) {
+	for (Trace_Metadata word : sample_Metadatas) {
 
 		z3::expr operator_Expr(context);
 
 		z3::expr_vector outer_Conjunction(context);
 		for (int j = 0; j < iteration; j++) {
 			for (int k = 0; k < iteration; k++) {
-				z3::expr inner_Formula = op.make_Inner_Formula(iteration, j, k, word_Index, context, word.first, word.second, variables_Y_Word_i_t);
+				z3::expr inner_Formula = op.make_Inner_Formula(iteration, j, k, word_Index, context, word.size, word.repetition, variables_Y_Word_i_t);
 				z3::expr implication = z3::implies(dag.variables_left_i_j[iteration][j] && dag.variables_right_i_j[iteration][k], inner_Formula);
 				outer_Conjunction.push_back(implication);
 			}

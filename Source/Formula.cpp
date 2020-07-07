@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -48,10 +48,10 @@ std::pair<bool, std::string> Formula::solve_Iteration_Incrementally(){
 	solver->push();
 
 	// Only these Y Variables will be removed from the solver after the iteration
-	for (unsigned int i = 0; i < positive_Sample->sample_Sizes.size(); i++) {
+	for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
 		solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0]);
 	}
-	for (unsigned int i = 0; i < negative_Sample->sample_Sizes.size(); i++) {
+	for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
 		solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0]);
 	}
 
@@ -312,21 +312,21 @@ void Formula::add_Formulas(Solve_And_Optimize& solver_Optimizer)
 	}
 
 	if (solver_Optimizer.using_Optimize) {
-		for (unsigned int i = 0; i < positive_Sample->sample_Sizes.size(); i++) {
-			solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0], 1);
+		for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
+			solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0], positive_Sample->sample_Metadatas[i].weight);
 		}
 
-		for (unsigned int i = 0; i < negative_Sample->sample_Sizes.size(); i++) {
-			solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0], 1);
+		for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
+			solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0], negative_Sample->sample_Metadatas[i].weight);
 		}
 	}
 	else {
 
-		for (unsigned int i = 0; i < positive_Sample->sample_Sizes.size(); i++) {
+		for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
 			solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0]);
 		}
 
-		for (unsigned int i = 0; i < negative_Sample->sample_Sizes.size(); i++) {
+		for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
 			solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0]);
 		}
 	}
