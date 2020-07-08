@@ -48,10 +48,10 @@ Solver_Result Formula::solve_Iteration_Incrementally(){
 	solver->push();
 
 	// Only these Y Variables will be removed from the solver after the iteration
-	for (unsigned int i = 0; i < positive_Sample->sample_Sizes.size(); i++) {
+	for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
 		solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0]);
 	}
-	for (unsigned int i = 0; i < negative_Sample->sample_Sizes.size(); i++) {
+	for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
 		solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0]);
 	}
 
@@ -314,21 +314,21 @@ void Formula::add_Formulas(Solve_And_Optimize& solver_Optimizer)
 	}
 
 	if (solver_Optimizer.using_Optimize) {
-		for (unsigned int i = 0; i < positive_Sample->sample_Sizes.size(); i++) {
-			solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0], 1);
+		for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
+			solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0], positive_Sample->sample_Metadatas[i].weight);
 		}
 
-		for (unsigned int i = 0; i < negative_Sample->sample_Sizes.size(); i++) {
-			solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0], 1);
+		for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
+			solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0], negative_Sample->sample_Metadatas[i].weight);
 		}
 	}
 	else {
 
-		for (unsigned int i = 0; i < positive_Sample->sample_Sizes.size(); i++) {
+		for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
 			solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0]);
 		}
 
-		for (unsigned int i = 0; i < negative_Sample->sample_Sizes.size(); i++) {
+		for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
 			solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0]);
 		}
 	}
@@ -364,13 +364,13 @@ void Formula::make_Result(z3::model& model, Solver_Result& result)
 	delete[] node_Vector;
 	result.satisfiable = true;
 
-	for (unsigned int i = 0; i < positive_Sample->sample_Sizes.size(); i++) {
+	for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
 		if (model.eval(positive_Sample->variables_Y_Word_i_t[i][iteration][0]).is_false()) {
 			result.false_negative.push_back(i);
 		}
 	}
 
-	for (unsigned int i = 0; i < negative_Sample->sample_Sizes.size(); i++) {
+	for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
 		if (model.eval(negative_Sample->variables_Y_Word_i_t[i][iteration][0]).is_true()) {
 			result.false_positive.push_back(i);
 		}

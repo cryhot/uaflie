@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,9 +34,6 @@ Sample_Tracer_LTL::Sample_Tracer_LTL(z3::context & context, Dag & dag, std::vect
 
 	number_Of_Variables = sample[0].first[0].size();
 
-	for (std::pair<std::vector<std::vector<bool>>, int> word : sample) {
-		sample_Sizes.push_back(std::make_pair(word.first.size(), word.second));
-	}
 }
 
 
@@ -147,10 +144,15 @@ void Sample_Tracer_LTL::create_Sample(std::vector<std::string> input_Sample_LTL)
 		std::getline(string_stream, line, ':');
 		std::string remaining_word = line;
 
-		std::getline(string_stream, line, ':');
-		std::getline(string_stream, line, ':');
-
-		int second_Component = std::stoi(line);
+		Trace_Metadata trace_Metadata = {.size=0, .repetition=-1, .weight=1};
+		if (std::getline(string_stream, line, ':')) {
+			if (std::getline(string_stream, line, '[')) {
+				if (line.size() > 0) trace_Metadata.repetition = std::stoi(line);
+				if (std::getline(string_stream, line, ']')) {
+					trace_Metadata.weight = std::stoi(line);
+				}
+			}
+		}
 
 		// make the string to a vector of vector of bools
 
@@ -165,7 +167,7 @@ void Sample_Tracer_LTL::create_Sample(std::vector<std::string> input_Sample_LTL)
 
 		// make string to bools
 
-		std::vector<std::vector<bool>> first_Component;
+		std::vector<std::vector<bool>> letters;
 		for (std::string s : initial_seperation) {
 			string_stream = std::stringstream(s);
 			std::vector<bool> letter;
@@ -174,9 +176,16 @@ void Sample_Tracer_LTL::create_Sample(std::vector<std::string> input_Sample_LTL)
 				std::istringstream(line) >> b;
 				letter.push_back(b);
 			}
-			first_Component.push_back(letter);
+			letters.push_back(letter);
 		}
 
-		sample.push_back(std::make_pair(first_Component, second_Component));
+		trace_Metadata.size = letters.size();
+		if (trace_Metadata.repetition < 0) {
+			// index from the end
+			trace_Metadata.repetition = trace_Metadata.size + trace_Metadata.repetition;
+		}
+
+		sample.push_back(std::make_pair(letters, trace_Metadata.repetition));
+		sample_Metadatas.push_back(trace_Metadata);
 	}
 }
