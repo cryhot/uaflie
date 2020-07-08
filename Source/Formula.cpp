@@ -48,10 +48,10 @@ std::pair<bool, std::string> Formula::solve_Iteration_Incrementally(){
 	solver->push();
 
 	// Only these Y Variables will be removed from the solver after the iteration
-	for (unsigned int i = 0; i < positive_Sample->sample_Sizes.size(); i++) {
+	for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
 		solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0]);
 	}
-	for (unsigned int i = 0; i < negative_Sample->sample_Sizes.size(); i++) {
+	for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
 		solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0]);
 	}
 
@@ -339,21 +339,21 @@ void Formula::add_Formulas(Solve_And_Optimize& solver_Optimizer)
 	}
 
 	if (solver_Optimizer.using_Optimize) {
-		for (unsigned int i = 0; i < positive_Sample->sample_Sizes.size(); i++) {
-			solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0], 1);
+		for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
+			solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0], positive_Sample->sample_Metadatas[i].weight);
 		}
 
-		for (unsigned int i = 0; i < negative_Sample->sample_Sizes.size(); i++) {
-			solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0], 1);
+		for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
+			solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0], negative_Sample->sample_Metadatas[i].weight);
 		}
 	}
 	else {
 
-		for (unsigned int i = 0; i < positive_Sample->sample_Sizes.size(); i++) {
+		for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
 			solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0]);
 		}
 
-		for (unsigned int i = 0; i < negative_Sample->sample_Sizes.size(); i++) {
+		for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
 			solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0]);
 		}
 	}
@@ -415,15 +415,15 @@ void Formula::initialize()
 	max_Word_Size = 0;
 	int max_Word_Prefix = 0;
 	int word_Period_LCM = 1;
-	for (std::pair<int, int> word_Size : positive_Sample->sample_Sizes) {
-		max_Word_Size = std::max(max_Word_Size, word_Size.first);
-		max_Word_Prefix = std::max(max_Word_Prefix, word_Size.second);
-		word_Period_LCM = lcm(word_Period_LCM, word_Size.first-word_Size.second);
+	for (Trace_Metadata word : positive_Sample->sample_Metadatas) {
+		max_Word_Size = std::max(max_Word_Size, word.size);
+		max_Word_Prefix = std::max(max_Word_Prefix, word.repetition);
+		word_Period_LCM = lcm(word_Period_LCM, word.size-word.repetition);
 	}
-	for (std::pair<int, int> word_Size : negative_Sample->sample_Sizes) {
-		max_Word_Size = std::max(max_Word_Size, word_Size.first);
-		max_Word_Prefix = std::max(max_Word_Prefix, word_Size.second);
-		word_Period_LCM = lcm(word_Period_LCM, word_Size.first-word_Size.second);
+	for (Trace_Metadata word : negative_Sample->sample_Metadatas) {
+		max_Word_Size = std::max(max_Word_Size, word.size);
+		max_Word_Prefix = std::max(max_Word_Prefix, word.repetition);
+		word_Period_LCM = lcm(word_Period_LCM, word.size-word.repetition);
 	}
 	max_Word_Period = max_Word_Prefix + word_Period_LCM;
 	positive_Sample->max_Word_Size = max_Word_Size;
