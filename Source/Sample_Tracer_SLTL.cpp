@@ -43,9 +43,6 @@ Sample_Tracer_SLTL::Sample_Tracer_SLTL(z3::context& context,
 	number_Of_Variables = terms.size();
 
 
-	for (std::pair<std::vector<std::vector<signal_t>>, int> word : sample) {
-		sample_Sizes.push_back(std::make_pair(word.first.size(), word.second));
-	}
 }
 
 Sample_Tracer_SLTL::~Sample_Tracer_SLTL()
@@ -105,10 +102,15 @@ void Sample_Tracer_SLTL::create_Sample(std::vector<std::string> input_Sample_SLT
 		std::getline(string_stream, line, ':');
 		std::string remaining_word = line;
 
-		std::getline(string_stream, line, ':');
-		std::getline(string_stream, line, ':');
-
-		int second_Component = std::stoi(line);
+		Trace_Metadata trace_Metadata = {.size=0, .repetition=-1, .weight=1};
+		if (std::getline(string_stream, line, ':')) {
+			if (std::getline(string_stream, line, '[')) {
+				if (line.size() > 0) trace_Metadata.repetition = std::stoi(line);
+				if (std::getline(string_stream, line, ']')) {
+					trace_Metadata.weight = std::stoi(line);
+				}
+			}
+		}
 
 		// make the string to a vector of vector of signal_t
 
@@ -123,7 +125,7 @@ void Sample_Tracer_SLTL::create_Sample(std::vector<std::string> input_Sample_SLT
 
 		// make string to 'signal_t's
 
-		std::vector<std::vector<signal_t>> first_Component;
+		std::vector<std::vector<signal_t>> letters;
 		for (std::string s : initial_seperation) {
 			string_stream = std::stringstream(s);
 			std::vector<signal_t> letter;
@@ -142,11 +144,16 @@ void Sample_Tracer_SLTL::create_Sample(std::vector<std::string> input_Sample_SLT
 				}
 				letter.push_back(sig);
 			}
-			first_Component.push_back(letter);
+			letters.push_back(letter);
 		}
 
+		trace_Metadata.size = letters.size();
+		if (trace_Metadata.repetition < 0) {
+			// index from the end
+			trace_Metadata.repetition = trace_Metadata.size + trace_Metadata.repetition;
+		}
 
-
-		sample.push_back(std::make_pair(first_Component, second_Component));
+		sample.push_back(std::make_pair(letters, trace_Metadata.repetition));
+		sample_Metadatas.push_back(trace_Metadata);
 	}
 }

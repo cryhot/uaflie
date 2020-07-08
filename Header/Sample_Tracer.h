@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,19 @@ SOFTWARE.
 #include <z3++.h>
 #include "Header/Functor_Operators.h"
 
+/*
+Structure to represent trace.
+*/
+struct Trace_Metadata
+{
+	/* Length of the word before repetition. */
+	int size;
+	/* Index of the position in the word from where it repeats. */
+	int repetition;
+	/* Weight of the trace. */
+	int weight;
+};
+
 class Sample_Tracer
 {
 public:
@@ -50,7 +63,7 @@ public:
 	z3::expr_vector all_Formulas;
 
 
-	std::vector<std::pair<int, int>> sample_Sizes;
+	std::vector<Trace_Metadata> sample_Metadatas;
 
 	//Methods:---------------------------------------------------------------
 	

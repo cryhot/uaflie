@@ -158,7 +158,7 @@ Example file:
 	N0>||,N1,N1;X,N1
 	N1>&&,N1,N1;x0;x1
 
-An LTL-file consists of 4 parts (5 parts if a grammar is used). Each of these parts is separated by a line containing only "\-\-\-"
+An LTL-file consists of 4 parts (5 parts if a grammar is used). Each of these parts is separated by a line containing only `---`.
 	
 **First part:** Represents the traces which should be accepted. In each line there is exactly one trace. The example file only has one accepting trace.
 
@@ -179,7 +179,10 @@ This an example of a trace line consisting of two variables. The values of these
 > x0: 1,0,1*
 	x1: 0,1,1*
 
-The integer after "::" is the time steps from where the values will repeat.
+The integer after `::` is the time step from where the values will repeat. A negative value will reference a time step from the end. It will loop on the last time step if not specified (equivalent to `::-1`).
+
+A weight can be attached to the trace. To do so, add an integer between brackets after `::` and the time step repetition. When unspecified, default weight is `[1]`. This weight will be used when [optimizing](#optimizing).
+>1,0;0,1;1,1::2[6]
 
 ### Grammar:
 
@@ -210,7 +213,7 @@ Example file:
 	=(s0,c0)
 	<(+(s1,s0),c1)
 
-An SLTL-file consists of 5 parts. Each of these parts is separated by the line "\-\-\-"
+An SLTL-file consists of 5 parts. Each of these parts is separated by the line `---`.
 	
 **First part:** Represents the traces which should be accepted. In each line there is exactly one trace. The example file only has one accepting trace.
 
@@ -232,8 +235,11 @@ This an example of a trace line consisting of two variables. The values of these
 > x0: 1.0,0.1,(1.6)*
 		x1: 0.2,1.3,(1.0)*
 
-The integer after "::" is the time steps from where the values will repeat.
-		
+The integer after `::` is the time step from where the values will repeat. A negative value will reference a time step from the end. It will loop on the last time step if not specified (equivalent to `::-1`).
+
+A weight can be attached to the trace. To do so, add an integer between brackets after `::` and the time step repetition. When unspecified, default weight is `[1]`. This weight will be used when [optimizing](#optimizing).
+>1.0,0.2;0.1,1.3;1.6,1.0::2[6]
+
 ### Terms:
 
 In part 5 there is a single Term is added in each line. The constants *c0...cn* can be used if *n+1* constants are used overall. The operators that can be used in the terms are *{<,>,=,!(not equal),+,-,\*}* after each of the operators the input has to be written inside of brackets separated by ",".
