@@ -66,6 +66,7 @@ Solver_Result Formula::solve_Iteration_Incrementally(){
 		if(verbose >= 2) std::cout << "satisfiable" << std::endl;
 		z3::model model = solver->get_model();
 		make_Result(model, result);
+		if (verbose >= 0) std::cout << result.formula << std::endl;
 	}
 	else {
 
@@ -364,6 +365,18 @@ void Formula::make_Result(z3::model& model, Solver_Result& result)
 	}
 	delete[] node_Vector;
 	result.satisfiable = true;
+
+	for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
+		if (model.eval(positive_Sample->variables_Y_Word_i_t[i][iteration][0]).is_false()) {
+			result.false_negative.push_back(i);
+		}
+	}
+
+	for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
+		if (model.eval(negative_Sample->variables_Y_Word_i_t[i][iteration][0]).is_true()) {
+			result.false_positive.push_back(i);
+		}
+	}
 }
 
 void Formula::set_Grammar(std::vector<std::string>& grammar)
