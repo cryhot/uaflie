@@ -37,7 +37,7 @@ void Formula::add_Variables(){
 	if (using_Grammar) context_Free_Grammar->add_Variables(iteration);
 }
 
-std::pair<bool, std::string> Formula::solve_Iteration_Incrementally(){
+Solver_Result Formula::solve_Iteration_Incrementally(){
 
 	if (optimized_Run == 0) {
 		//TODO
@@ -57,7 +57,8 @@ std::pair<bool, std::string> Formula::solve_Iteration_Incrementally(){
 
 
 
-	std::pair<bool, std::string> result = std::make_pair(true, "");
+	Solver_Result result;
+	result.satisfiable = false;
 	if (solver->check() == z3::sat) {
 		finish = clock();
 		z3_Time += (finish - start) /(double) CLOCKS_PER_SEC;
@@ -79,7 +80,7 @@ std::pair<bool, std::string> Formula::solve_Iteration_Incrementally(){
 	return result;
 }
 
-std::pair<bool, std::string> Formula::solve_Iteration()
+Solver_Result Formula::solve_Iteration()
 {
 	if (using_Incremental) {
 		return solve_Iteration_Incrementally();
@@ -94,7 +95,8 @@ std::pair<bool, std::string> Formula::solve_Iteration()
 
 	add_Formulas(solver_Optimizer);
 	
-	std::pair<bool, std::string> result = std::make_pair(true, "");
+	Solver_Result result;
+	result.satisfiable = false;
 	if (solver.check() == z3::sat) {
 		finish = clock();
 		z3_Time += (finish - start) / (double)CLOCKS_PER_SEC;
@@ -114,14 +116,15 @@ std::pair<bool, std::string> Formula::solve_Iteration()
 	
 }
 
-std::pair<bool, std::string> Formula::solve_Iteration_Optimize() {
+Solver_Result Formula::solve_Iteration_Optimize() {
 
 	z3::optimize optimize(context);
 	Max_Sat_Solver solver_Optimizer = Max_Sat_Solver(optimize);
 
 	add_Formulas(solver_Optimizer);
 
-	std::pair<bool, std::string> result = std::make_pair(true, "");
+	Solver_Result result;
+	result.satisfiable = false;
 	if (optimize.check() == z3::sat) {
 		finish = clock();
 		z3_Time += (finish - start) / (double)CLOCKS_PER_SEC;
@@ -201,10 +204,9 @@ Formula::Formula()
 {
 }
 
-std::string Formula::find_LTL()
+Solver_Result Formula::find_LTL()
 {
-	// the result contains a bool stating wether the iteration was satisfiable and a string containing the representation of the correct formula
-	std::pair<bool, std::string> result;
+	Solver_Result result;
 
 	// is decreased one already since the first iteration has index 0
 	optimized_Run--; 
@@ -214,7 +216,7 @@ std::string Formula::find_LTL()
 	result = solve_Iteration();
 
 	// as long as no result was found prepare a new iteration and use sat solver
-	while (result.first) {
+	while (!result.satisfiable) {
 		optimized_Run--;
 		prepare_New_Iteration();
 
@@ -226,12 +228,13 @@ std::string Formula::find_LTL()
 	finish = clock();
 	own_Execution_Time += (finish - start) / (double)CLOCKS_PER_SEC;
 
+	if (verbose >= 0) std::cout << result.formula << std::endl;
 
 	if (verbose >= 1) std::cout << "\nOwn execution time: " << own_Execution_Time << std::endl;
 	if (verbose >= 1) std::cout << "Z3 execution time: " << z3_Time << std::endl;
 	if (verbose >= 1) std::cout << "total execution time: " << own_Execution_Time + z3_Time << std::endl;
 
-	return result.second;	
+	return result;
 }
 
 std::string Formula::print_Tree(Node *root)
@@ -346,7 +349,7 @@ void Formula::add_Formulas(Solve_And_Optimize& solver_Optimizer)
 	}
 }
 
-void Formula::make_Result(z3::model& model, std::pair<bool, std::string>& result)
+void Formula::make_Result(z3::model& model, Solver_Result& result)
 {
 	std::vector<bool> touched;
 	for (int i = 0; i <= iteration; i++) {
@@ -355,13 +358,12 @@ void Formula::make_Result(z3::model& model, std::pair<bool, std::string>& result
 	Node** node_Vector;
 	node_Vector = (Node**)malloc((iteration + 1) * sizeof(Node*));
 	Node* root = build_Tree(model, iteration, node_Vector, touched);
-	result.second = print_Tree(root);
+	result.formula = print_Tree(root);
 	for (int i = 0; i <= iteration; i++) {
 		delete node_Vector[i];
 	}
 	delete[] node_Vector;
-	result.first = false;
-	std::cout << result.second << std::endl;
+	result.satisfiable = true;
 }
 
 void Formula::set_Grammar(std::vector<std::string>& grammar)

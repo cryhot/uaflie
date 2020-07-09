@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -335,8 +335,12 @@ int main(int argc, char* argv[]) {
 			print_Help();
 			return 0;
 		}
+		if (!strcmp(argv[i], "-q")) verbose = -1;
 		if (!strcmp(argv[i], "-v")) verbose = 1;
 		if (!strcmp(argv[i], "-vv")) verbose = 2;
+		if (!strcmp(argv[i], "-vvv")) verbose = 3;
+		if (!strcmp(argv[i], "-vvvv")) verbose = 4;
+		if (!strcmp(argv[i], "-vvvvv")) verbose = 5;
 	}
 
 

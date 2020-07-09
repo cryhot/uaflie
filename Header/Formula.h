@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,17 @@ SOFTWARE.
 #include "Header/Sample_Tracer.h"
 #include <memory>
 
+
+/*
+Structure to represent solver result.
+*/
+struct Solver_Result
+{
+	/* True if the iteration was satisfiable. */
+	bool satisfiable;
+	/* Representation of the correct formula. */
+	std::string formula;
+};
 
 /*
 Structure to represent the DAG.
@@ -101,7 +112,7 @@ public:
 	/*
 	Find a LTL formula fullfilling all requirements.
 	*/
-	std::string find_LTL();
+	Solver_Result find_LTL();
 
 	/*
 	Set the grammar if a grammar is used.
@@ -251,17 +262,17 @@ protected:
 	/*
 	Solves the current iteration.
 	*/
-	std::pair<bool, std::string> solve_Iteration();
+	Solver_Result solve_Iteration();
 
 	/*
 	Solves the current iteration with an incremental solver.
 	*/
-	std::pair<bool, std::string> solve_Iteration_Incrementally();
+	Solver_Result solve_Iteration_Incrementally();
 
 	/*
 	Solves the current iteration with an optimizer.
 	*/
-	std::pair<bool, std::string> solve_Iteration_Optimize();
+	Solver_Result solve_Iteration_Optimize();
 
 	/*
 	Constructs a string representing the formula of the tree.
@@ -277,7 +288,7 @@ protected:
 	/*
 	Creates the tree and Formula when everything is satisfiable
 	*/
-	void make_Result(z3::model& model, std::pair<bool, std::string>& result);
+	void make_Result(z3::model& model, Solver_Result& result);
 
 	/*
 	sets the using_LTL variable to be true
