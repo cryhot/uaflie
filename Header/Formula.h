@@ -41,6 +41,8 @@ struct Solver_Result
 	bool satisfiable;
 	/* Representation of the correct formula. */
 	std::string formula;
+	/* Classification score. */
+	double score;
 	/* Indexes of the words of positive_Sample unsatisfying the formula. */
 	std::vector<unsigned int> false_negative;
 	/* Indexes of the words of negative_Sample satisfying the formula. */
@@ -71,6 +73,14 @@ public:
 
 	virtual void add(z3::expr expr, int weight) {}
 
+	virtual z3::check_result check() {}
+
+	virtual z3::model get_model() {}
+
+	virtual void push() {}
+
+	virtual void pop() {}
+
 };
 
 class Sat_Solver:public Solve_And_Optimize{
@@ -83,6 +93,22 @@ public:
 
 	void add(z3::expr expr){
 		solver.add(expr);
+	}
+
+	z3::check_result check() {
+		return solver.check();
+	}
+
+	z3::model get_model() {
+		return solver.get_model();
+	}
+
+	void push() {
+		return solver.push();
+	}
+
+	void pop() {
+		return solver.pop();
 	}
 };
 
@@ -99,6 +125,22 @@ public:
 
 	void add(z3::expr expr, int weight) {
 		optimize.add(expr, weight);
+	}
+
+	z3::check_result check() {
+		return optimize.check();
+	}
+
+	z3::model get_model() {
+		return optimize.get_model();
+	}
+
+	void push() {
+		return optimize.push();
+	}
+
+	void pop() {
+		return optimize.pop();
 	}
 };
 
@@ -274,11 +316,6 @@ protected:
 	Solver_Result solve_Iteration_Incrementally();
 
 	/*
-	Solves the current iteration with an optimizer.
-	*/
-	Solver_Result solve_Iteration_Optimize();
-
-	/*
 	Constructs a string representing the formula of the tree.
 		root: root of the tree
 	*/
@@ -292,7 +329,7 @@ protected:
 	/*
 	Creates the tree and Formula when everything is satisfiable
 	*/
-	void make_Result(z3::model& model, Solver_Result& result);
+	void make_Result(Solve_And_Optimize& solver_Optimizer, Solver_Result& result);
 
 	/*
 	sets the using_LTL variable to be true

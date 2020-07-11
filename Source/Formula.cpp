@@ -43,39 +43,40 @@ Solver_Result Formula::solve_Iteration_Incrementally(){
 		//TODO
 	}
 
-	Sat_Solver solver_Optimizer = Sat_Solver(*solver);
+	Solve_And_Optimize *solver_Optimizer;
+	z3::solver solver(context);
+	solver_Optimizer = new Sat_Solver(solver);
 
-	solver->push();
+	solver_Optimizer->push();
 
 	// Only these Y Variables will be removed from the solver after the iteration
 	for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
-		solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0]);
+		solver_Optimizer->add(positive_Sample->variables_Y_Word_i_t[i][iteration][0]);
 	}
 	for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
-		solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0]);
+		solver_Optimizer->add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0]);
 	}
 
 
 
 	Solver_Result result;
-	result.satisfiable = false;
-	if (solver->check() == z3::sat) {
+	if (solver_Optimizer->check() == z3::sat) {
 		finish = clock();
 		z3_Time += (finish - start) /(double) CLOCKS_PER_SEC;
 		start = clock();
-		if(verbose >= 2) std::cout << "satisfiable" << std::endl;
-		z3::model model = solver->get_model();
-		make_Result(model, result);
+		make_Result(*solver_Optimizer, result);
+		if (verbose >= 2) std::cout << "satisfiable" << std::endl;
 		if (verbose >= 0) std::cout << result.formula << std::endl;
 	}
 	else {
 
-		solver->pop();
+		solver_Optimizer->pop();
 		finish = clock();
 		z3_Time += (finish - start) / (double)CLOCKS_PER_SEC;
 		start = clock();
 
-		if(verbose >= 2)std::cout << "not satisfiable" << std::endl;
+		if (verbose >= 2) std::cout << "not satisfiable" << std::endl;
+		result.satisfiable = false;
 	}
 
 	return result;
@@ -87,24 +88,30 @@ Solver_Result Formula::solve_Iteration()
 		return solve_Iteration_Incrementally();
 	}
 
+	Solve_And_Optimize *solver_Optimizer;
 	if (optimized_Run == 0) {
-		return solve_Iteration_Optimize();
+		z3::optimize optimize(context);
+		solver_Optimizer = new Max_Sat_Solver(optimize);
+	} else {
+		z3::solver solver(context);
+		solver_Optimizer = new Sat_Solver(solver);
 	}
 	
-	z3::solver solver(context);
-	Sat_Solver solver_Optimizer = Sat_Solver(solver);
+	add_Formulas(*solver_Optimizer);
 
-	add_Formulas(solver_Optimizer);
-	
 	Solver_Result result;
-	result.satisfiable = false;
-	if (solver.check() == z3::sat) {
+	if (solver_Optimizer->check() == z3::sat) {
 		finish = clock();
 		z3_Time += (finish - start) / (double)CLOCKS_PER_SEC;
 		start = clock();
-		if (verbose >= 2) std::cout << "satisfiable" << std::endl;
-		z3::model model = solver.get_model();
-		make_Result(model, result);
+		make_Result(*solver_Optimizer, result);
+		if (verbose >= 2) {
+			if (solver_Optimizer->using_Optimize)
+				std::cout << "satisfiable: " << result.score << std::endl;
+			else
+				std::cout << "satisfiable" << std::endl;
+		}
+		if (verbose >= 0) std::cout << result.formula << std::endl;
 	}
 	else {
 		finish = clock();
@@ -112,37 +119,10 @@ Solver_Result Formula::solve_Iteration()
 		start = clock();
 
 		if (verbose >= 2) std::cout << "not satisfiable" << std::endl;
+		result.satisfiable = false;
 	}
 	return result;
 	
-}
-
-Solver_Result Formula::solve_Iteration_Optimize() {
-
-	z3::optimize optimize(context);
-	Max_Sat_Solver solver_Optimizer = Max_Sat_Solver(optimize);
-
-	add_Formulas(solver_Optimizer);
-
-	Solver_Result result;
-	result.satisfiable = false;
-	if (optimize.check() == z3::sat) {
-		finish = clock();
-		z3_Time += (finish - start) / (double)CLOCKS_PER_SEC;
-		start = clock();
-		if (verbose >= 2) std::cout << "satisfiable" << std::endl;
-		z3::model model = optimize.get_model();
-		make_Result(model, result);
-	}
-	else {
-		finish = clock();
-		z3_Time += (finish - start) / (double)CLOCKS_PER_SEC;
-		start = clock();
-
-		if (verbose >= 2) std::cout << "not satisfiable" << std::endl;
-	}
-
-	return result;
 }
 
 void Formula::prepare_New_Iteration()
@@ -228,8 +208,6 @@ Solver_Result Formula::find_LTL()
 
 	finish = clock();
 	own_Execution_Time += (finish - start) / (double)CLOCKS_PER_SEC;
-
-	if (verbose >= 0) std::cout << result.formula << std::endl;
 
 	if (verbose >= 1) std::cout << "\nOwn execution time: " << own_Execution_Time << std::endl;
 	if (verbose >= 1) std::cout << "Z3 execution time: " << z3_Time << std::endl;
@@ -350,8 +328,9 @@ void Formula::add_Formulas(Solve_And_Optimize& solver_Optimizer)
 	}
 }
 
-void Formula::make_Result(z3::model& model, Solver_Result& result)
+void Formula::make_Result(Solve_And_Optimize& solver_Optimizer, Solver_Result& result)
 {
+	z3::model model = solver_Optimizer.get_model();
 	std::vector<bool> touched;
 	for (int i = 0; i <= iteration; i++) {
 		touched.push_back(false);
@@ -366,17 +345,29 @@ void Formula::make_Result(z3::model& model, Solver_Result& result)
 	delete[] node_Vector;
 	result.satisfiable = true;
 
+	int pos_weights = 0;
+	int pos_score = 0;
 	for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
-		if (model.eval(positive_Sample->variables_Y_Word_i_t[i][iteration][0]).is_false()) {
+		pos_weights += positive_Sample->sample_Metadatas[i].weight;
+		if (model.eval(positive_Sample->variables_Y_Word_i_t[i][iteration][0]).is_true()) {
+			pos_score += positive_Sample->sample_Metadatas[i].weight;
+		} else {
 			result.false_negative.push_back(i);
 		}
 	}
 
+	int neg_weights = 0;
+	int neg_score = 0;
 	for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
-		if (model.eval(negative_Sample->variables_Y_Word_i_t[i][iteration][0]).is_true()) {
+		neg_weights += negative_Sample->sample_Metadatas[i].weight;
+		if (model.eval(negative_Sample->variables_Y_Word_i_t[i][iteration][0]).is_false()) {
+			neg_score += negative_Sample->sample_Metadatas[i].weight;
+		} else {
 			result.false_positive.push_back(i);
 		}
 	}
+
+	result.score = (double)(pos_score+neg_score) / (double)(pos_weights+neg_weights);
 }
 
 void Formula::set_Grammar(std::vector<std::string>& grammar)
