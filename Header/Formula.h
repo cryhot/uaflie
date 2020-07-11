@@ -33,6 +33,11 @@ SOFTWARE.
 
 
 /*
+Enumeration to represent the classification score method.
+*/
+enum class Score { Count, Ratio, Linear, Quadra };
+
+/*
 Structure to represent solver result.
 */
 struct Solver_Result
@@ -41,6 +46,8 @@ struct Solver_Result
 	bool satisfiable;
 	/* Representation of the correct formula. */
 	std::string formula;
+	/* Classification score. */
+	double score;
 	/* Indexes of the words of positive_Sample unsatisfying the formula. */
 	std::vector<unsigned int> false_negative;
 	/* Indexes of the words of negative_Sample satisfying the formula. */
@@ -71,6 +78,16 @@ public:
 
 	virtual void add(z3::expr expr, int weight) {}
 
+	virtual void add_maximize(z3::expr expr) {}
+
+	virtual z3::check_result check() {}
+
+	virtual z3::model get_model() {}
+
+	virtual void push() {}
+
+	virtual void pop() {}
+
 };
 
 class Sat_Solver:public Solve_And_Optimize{
@@ -83,6 +100,22 @@ public:
 
 	void add(z3::expr expr){
 		solver.add(expr);
+	}
+
+	z3::check_result check() {
+		return solver.check();
+	}
+
+	z3::model get_model() {
+		return solver.get_model();
+	}
+
+	void push() {
+		return solver.push();
+	}
+
+	void pop() {
+		return solver.pop();
 	}
 };
 
@@ -99,6 +132,26 @@ public:
 
 	void add(z3::expr expr, int weight) {
 		optimize.add(expr, weight);
+	}
+
+	void add_maximize(z3::expr expr) {
+		optimize.maximize(expr);
+	}
+
+	z3::check_result check() {
+		return optimize.check();
+	}
+
+	z3::model get_model() {
+		return optimize.get_model();
+	}
+
+	void push() {
+		return optimize.push();
+	}
+
+	void pop() {
+		return optimize.pop();
 	}
 };
 
@@ -135,6 +188,11 @@ public:
 	void set_Optimized_Run(int optimized_Run) {this->optimized_Run = optimized_Run;};
 
 	/*
+	Sets the classification score to optimize.
+	*/
+	void set_Score(Score score) {this->score = score;};
+
+	/*
 	Sets the setting of all data structures to use an incremental solver and constructs this solver.
 	*/
 	void set_Using_Incremental();
@@ -168,6 +226,11 @@ protected:
 	The iteration in which an optimizer instead of a solver is used. (1,...)
 	*/
 	int optimized_Run = 0;
+
+	/*
+	The classification score used with the optimizer.
+	*/
+	Score score = Score::Count;
 
 	/*
 	The number of variables used in each letter.
@@ -274,11 +337,6 @@ protected:
 	Solver_Result solve_Iteration_Incrementally();
 
 	/*
-	Solves the current iteration with an optimizer.
-	*/
-	Solver_Result solve_Iteration_Optimize();
-
-	/*
 	Constructs a string representing the formula of the tree.
 		root: root of the tree
 	*/
@@ -292,7 +350,7 @@ protected:
 	/*
 	Creates the tree and Formula when everything is satisfiable
 	*/
-	void make_Result(z3::model& model, Solver_Result& result);
+	void make_Result(Solve_And_Optimize& solver_Optimizer, Solver_Result& result);
 
 	/*
 	sets the using_LTL variable to be true

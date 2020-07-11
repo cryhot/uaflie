@@ -132,6 +132,7 @@ Here i will explain which command line arguments can be used to solve the variou
 |----------------|------------------------------
 |-f \<path>| Specifies the path to a single trace file which should be examined. If no further argument is given, the program will solve the [LTL problem](#ltl).                
 |-max \<iteration>|Specifies the maximal size a formula should take. If this argument is specified the [optimizing](#optimizing) problem will be solved. This argument can be used in both the [LTL](#ltl) and [SLTL](#sltl) case.
+| -score \<method> | Specifies a classification score to use while [optimizing](#optimizing). Can be `count`,`ratio`,`linear`,`quadratic`.
 |-g | Specifies whether a grammar like in section [CFG](#using-context-free-grammar) is used to constrain the output formulas. This option can only be used in the [LTL](#ltl) case. 
 |-sltl| This is used if the  [SLTL problem](#sltl) should be solved instead of the [LTL problem](#ltl).
 |-v| Outputs the formula at each node of the decision tree as well as the computation time at the end of the algorithm at each node.

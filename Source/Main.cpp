@@ -212,7 +212,7 @@ Executes the algorithm for given parameters for a single input.
 	optimized_Run: gives the iteration in which max sat is used instead of sat
 	input_Split: the different sections of the file
 */
-Dataset_Result solve_Single_Dataset(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, std::vector<std::vector<std::string>> &input_Split, int verbose) {
+Dataset_Result solve_Single_Dataset(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, Score score, std::vector<std::vector<std::string>> &input_Split, int verbose) {
 	Formula* formula;
 	int grammar_Index;
 
@@ -235,13 +235,15 @@ Dataset_Result solve_Single_Dataset(bool using_Grammar, bool using_Incremental, 
 		formula->set_Optimized_Run(optimized_Run);
 	}
 
+	formula->set_Score(score);
+
 	if (using_Incremental) {
 		formula->set_Using_Incremental();
 	}
-	formula->set_Vebose(verbose);
+	if (verbose >= 1) formula->set_Vebose(verbose);
+	else formula->set_Vebose(-1);
 	formula->initialize();
 	Solver_Result result = formula->find_LTL();
-	if (verbose >= 1) std::cout << result.formula << std::endl;
 
 	Dataset_Result nodeResult;
 	nodeResult.positive_size = positive_Sample_String.size();
@@ -337,7 +339,7 @@ Dataset_Result solve_Single_Dataset(bool using_Grammar, bool using_Incremental, 
 		}
 		input_Split[0] = next_positive_Sample_String;
 		input_Split[1] = next_negative_Sample_String;
-		Dataset_Result posResult = solve_Single_Dataset(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input_Split, verbose);
+		Dataset_Result posResult = solve_Single_Dataset(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, input_Split, verbose);
 
 		nodeResult.formula = "("+result.formula+"&&"+posResult.formula+")";
 		nodeResult.ansi_formula = ANSI_FORMULA("(")+result.formula+ANSI_FORMULA("&&")+posResult.ansi_formula+ANSI_FORMULA(")");
@@ -375,7 +377,7 @@ Dataset_Result solve_Single_Dataset(bool using_Grammar, bool using_Incremental, 
 		}
 		input_Split[0] = next_positive_Sample_String;
 		input_Split[1] = next_negative_Sample_String;
-		Dataset_Result negResult = solve_Single_Dataset(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input_Split, verbose);
+		Dataset_Result negResult = solve_Single_Dataset(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, input_Split, verbose);
 
 		nodeResult.formula = "("+nodeResult.formula+"||(!"+result.formula+"&&"+negResult.formula+"))";
 		nodeResult.ansi_formula = ANSI_FORMULA("(")+nodeResult.ansi_formula+ANSI_FORMULA("||(!")+result.formula+ANSI_FORMULA("&&")+negResult.ansi_formula+ANSI_FORMULA("))");
@@ -400,7 +402,7 @@ Executes the algorithm for given parameters for a single input file.
 	optimized_Run: gives the iteration in which max sat is used instead of sat
 	input: the paths to the input file
 */
-Dataset_Result solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, char * input, int verbose)
+Dataset_Result solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, Score score, char * input, int verbose)
 {
 	std::vector<std::vector<std::string>> input_Split;
 
@@ -428,7 +430,7 @@ Dataset_Result solve_Single_File(bool using_Grammar, bool using_Incremental, boo
 		std::cout << " max=" << optimized_Run;
 		std::cout << ":" << std::endl;
 	}
-	Dataset_Result rootResult = solve_Single_Dataset(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input_Split, verbose);
+	Dataset_Result rootResult = solve_Single_Dataset(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, input_Split, verbose);
 
 	clock_t end = clock();
 	rootResult.time = (end - start) / (double)CLOCKS_PER_SEC;
@@ -459,7 +461,7 @@ Executes the algorithm for given parameters for a set of inputs.
 	optimized_Run: gives the iteration in which max sat is used instead of sat
 	input_Files: a vector of paths to the input files
 */
-int solve_Multiple_Files(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, std::vector<char*> input_Files, int verbose) {
+int solve_Multiple_Files(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, Score score, std::vector<char*> input_Files, int verbose) {
 
 	std::ofstream csv_result;
 	csv_result.open("results.csv");
@@ -487,7 +489,7 @@ int solve_Multiple_Files(bool using_Grammar, bool using_Incremental, bool using_
 
 		if (input_Files.size() > 1) std::cout << "\nSOLVING " << file << std::endl;
 
-		Dataset_Result result = solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, file, verbose);
+		Dataset_Result result = solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, file, verbose);
 		if (!result.success) status = 1;
 
 		/* "Traces" */
@@ -497,7 +499,14 @@ int solve_Multiple_Files(bool using_Grammar, bool using_Incremental, bool using_
 		/* "Negative Traces" */
 		csv_result << "," << result.negative_size;
 		/* "Method" */
-		csv_result << "," << "DecisionTree[max=" << optimized_Run << "]";
+		std::string score_method;
+		switch (score) {
+			case Score::Count:  score_method = "count";  break;
+			case Score::Ratio:  score_method = "ratio";  break;
+			case Score::Linear: score_method = "linear"; break;
+			case Score::Quadra: score_method = "quadra"; break;
+		}
+		csv_result << "," << "DecisionTree[score=" << score_method << " max=" << optimized_Run << "]";
 		/* "Success" */
 		csv_result << "," << result.success;
 		/* "Time passed" */
@@ -528,6 +537,7 @@ void print_Help() {
 	std::cout << "Command Line Arguments:\n " << std::endl;
 	std::cout << "-f <path>:	Specifies the path to a single trace file which should be examined.\n" << std::endl;
 	std::cout << "-max <iteration>:	Specifies the iteration in which MAX-SAT solver is used instead of a SAT Solver. If this argument is not used MAX-SAT will not be used.\n" << std::endl;
+	std::cout << "-score <method>:	Specifies a classification score to use with MAX-SAT. Possible values: count|ratio|linear|quadratic\n" << std::endl;
 	std::cout << "-i:	Specifies whether an incremental solver should be used.\n" << std::endl;
 	std::cout << "-g:	Specifies whether a grammar is used to limit the output formulas.\n" << std::endl;
 	std::cout << "-sltl:	Specifies whether the input file is a SLTL example.\n" << std::endl;
@@ -543,6 +553,7 @@ int main(int argc, char* argv[]) {
 	bool using_SLTL = false;
 	int verbose = 0;
 	int optimized_Run = 0;
+	Score score = Score::Count;
 	std::vector<char*> input_Files;
 
 
@@ -553,8 +564,19 @@ int main(int argc, char* argv[]) {
 	for (int i = 0; i < argc; i++) {
 		if (!strcmp(argv[i], "-g")) using_Grammar = true;
 		if (!strcmp(argv[i], "-i")) using_Incremental = true;
-		if (!strcmp(argv[i], "-f")&& (i + 1) < argc) input_Files.push_back(argv[i + 1]);
-		if (!strcmp(argv[i], "-max") && (i + 1) < argc) optimized_Run = std::stoi(argv[i + 1]);
+		if (!strcmp(argv[i], "-f")&& (i + 1) < argc) {input_Files.push_back(argv[i + 1]); i+=1;}
+		if (!strcmp(argv[i], "-max") && (i + 1) < argc) {optimized_Run = std::stoi(argv[i + 1]); i+=1;}
+		if (!strcmp(argv[i], "-score") && (i + 1) < argc) {
+			if      (!strcmp(argv[i+1], "count"))  score = Score::Count;
+			else if (!strcmp(argv[i+1], "ratio"))  score = Score::Ratio;
+			else if (!strcmp(argv[i+1], "linear")) score = Score::Linear;
+			else if (!strcmp(argv[i+1], "quadra")) score = Score::Quadra;
+			else {
+				std::cout << "invalid classification score: " << argv[i+1] << std::endl;
+				return 1;
+			}
+			i+=1;
+		}
 		if (!strcmp(argv[i], "-sltl")) using_SLTL = true;
 		if (!strcmp(argv[i], "-range") && (i + 2) < argc) {
 
@@ -585,12 +607,14 @@ int main(int argc, char* argv[]) {
 					input_Files.push_back(input_File);
 				}
 				infile.close();
+				i+=2;
 			}
 		}
 		if (!strcmp(argv[i], "-h") || argc  == 1) {
 			print_Help();
 			return 0;
 		}
+		if (!strcmp(argv[i], "-q")) verbose = -1;
 		if (!strcmp(argv[i], "-v")) verbose = 1;
 		if (!strcmp(argv[i], "-vv")) verbose = 2;
 		if (!strcmp(argv[i], "-vvv")) verbose = 3;
@@ -603,7 +627,7 @@ int main(int argc, char* argv[]) {
 
 		// execute for all input files
 
-		return solve_Multiple_Files(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input_Files, verbose);
+		return solve_Multiple_Files(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, input_Files, verbose);
 	}
 	else {
 		std::cout << "No input File\n" << std::endl;
