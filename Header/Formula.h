@@ -33,6 +33,11 @@ SOFTWARE.
 
 
 /*
+Enumeration to represent the classification score method.
+*/
+enum class Score { Count, Ratio, Linear, Quadra };
+
+/*
 Structure to represent solver result.
 */
 struct Solver_Result
@@ -72,6 +77,8 @@ public:
 	virtual void add(z3::expr expr) {}
 
 	virtual void add(z3::expr expr, int weight) {}
+
+	virtual void add_maximize(z3::expr expr) {}
 
 	virtual z3::check_result check() {}
 
@@ -127,6 +134,10 @@ public:
 		optimize.add(expr, weight);
 	}
 
+	void add_maximize(z3::expr expr) {
+		optimize.maximize(expr);
+	}
+
 	z3::check_result check() {
 		return optimize.check();
 	}
@@ -177,6 +188,11 @@ public:
 	void set_Optimized_Run(int optimized_Run) {this->optimized_Run = optimized_Run;};
 
 	/*
+	Sets the classification score to optimize.
+	*/
+	void set_Score(Score score) {this->score = score;};
+
+	/*
 	Sets the setting of all data structures to use an incremental solver and constructs this solver.
 	*/
 	void set_Using_Incremental();
@@ -210,6 +226,11 @@ protected:
 	The iteration in which an optimizer instead of a solver is used. (1,...)
 	*/
 	int optimized_Run = 0;
+
+	/*
+	The classification score used with the optimizer.
+	*/
+	Score score = Score::Count;
 
 	/*
 	The number of variables used in each letter.

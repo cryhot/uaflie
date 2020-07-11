@@ -89,11 +89,11 @@ Solver_Result Formula::solve_Iteration()
 	}
 
 	Solve_And_Optimize *solver_Optimizer;
+	z3::optimize optimize(context);
+	z3::solver solver(context);
 	if (optimized_Run == 0) {
-		z3::optimize optimize(context);
 		solver_Optimizer = new Max_Sat_Solver(optimize);
 	} else {
-		z3::solver solver(context);
 		solver_Optimizer = new Sat_Solver(solver);
 	}
 	
@@ -294,12 +294,47 @@ void Formula::add_Formulas(Solve_And_Optimize& solver_Optimizer)
 	}
 
 	if (solver_Optimizer.using_Optimize) {
-		for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
-			solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0], positive_Sample->sample_Metadatas[i].weight);
-		}
+		int pos_weights = 0;
+		for (Trace_Metadata word : positive_Sample->sample_Metadatas) pos_weights += word.weight;
+		int neg_weights = 0;
+		for (Trace_Metadata word : negative_Sample->sample_Metadatas) neg_weights += word.weight;
+		if (score==Score::Count || score==Score::Ratio) {
+			int pos_scale, neg_scale;
+			switch (score) {
+				case Score::Count: pos_scale=1; neg_scale=1; break;
+				case Score::Ratio: pos_scale=neg_weights; neg_scale=pos_weights; break;
+			}
 
-		for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
-			solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0], negative_Sample->sample_Metadatas[i].weight);
+			for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
+				solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0], positive_Sample->sample_Metadatas[i].weight * pos_scale);
+			}
+
+			for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
+				solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0], negative_Sample->sample_Metadatas[i].weight * neg_scale);
+			}
+		} else if (score==Score::Linear || score==Score::Quadra) {
+			z3::expr_vector positive_Sample_Classified(context);
+			for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
+				positive_Sample_Classified.push_back(z3::ite(positive_Sample->variables_Y_Word_i_t[i][iteration][0],
+					context.int_val(positive_Sample->sample_Metadatas[i].weight),
+					context.int_val(0)
+				));
+			}
+			z3::expr pos_s_c_size = z3::sum(positive_Sample_Classified);
+
+			z3::expr_vector negative_Sample_Classified(context);
+			for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
+				negative_Sample_Classified.push_back(z3::ite(negative_Sample->variables_Y_Word_i_t[i][iteration][0],
+					context.int_val(0),
+					context.int_val(negative_Sample->sample_Metadatas[i].weight)
+				));
+			}
+			z3::expr neg_s_c_size = z3::sum(negative_Sample_Classified);
+
+			switch (score) {
+				case Score::Linear: solver_Optimizer.add_maximize(pos_s_c_size*neg_weights + neg_s_c_size*pos_weights); break;
+				case Score::Quadra: solver_Optimizer.add_maximize(pos_s_c_size * neg_s_c_size); break;
+			}
 		}
 	}
 	else {
@@ -367,7 +402,15 @@ void Formula::make_Result(Solve_And_Optimize& solver_Optimizer, Solver_Result& r
 		}
 	}
 
-	result.score = (double)(pos_score+neg_score) / (double)(pos_weights+neg_weights);
+	switch (score) {
+		case Score::Count:
+			result.score = (double)(pos_score+neg_score) / (double)(pos_weights+neg_weights); break;
+		case Score::Ratio:
+		case Score::Linear:
+			result.score = 0.5l*pos_score/pos_weights + 0.5l*neg_score/neg_weights; break;
+		case Score::Quadra:
+			result.score = (double)(pos_score*neg_score) / (double)(pos_weights*neg_weights); break;
+	}
 }
 
 void Formula::set_Grammar(std::vector<std::string>& grammar)

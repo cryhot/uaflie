@@ -198,7 +198,7 @@ Executes the algorithm for given parameters for a single input file.
 	optimized_Run: gives the iteration in which max sat is used instead of sat
 	input: the paths to the input file
 */
-void solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, char * input, int verbose)
+void solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, Score score, char * input, int verbose)
 {
 	Formula* formula;
 	std::vector<std::vector<std::string>> input_Split;
@@ -226,6 +226,8 @@ void solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SL
 		formula->set_Optimized_Run(optimized_Run);
 	}
 
+	formula->set_Score(score);
+
 	if (using_Incremental) {
 		formula->set_Using_Incremental();
 	}
@@ -243,7 +245,7 @@ Executes the algorithm for given parameters for a set of inputs.
 	optimized_Run: gives the iteration in which max sat is used instead of sat
 	input_Files: a vector of paths to the input files
 */
-void solve_Multiple_Files(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, std::vector<char*> input_Files, int verbose) {
+void solve_Multiple_Files(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, Score score, std::vector<char*> input_Files, int verbose) {
 
 
 	std::ofstream myfile;
@@ -253,7 +255,7 @@ void solve_Multiple_Files(bool using_Grammar, bool using_Incremental, bool using
 	for (char* file : input_Files) {
 		clock_t start = clock();
 
-		solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, file, verbose);
+		solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, file, verbose);
 
 		clock_t end = clock();
 
@@ -271,6 +273,7 @@ void print_Help() {
 	std::cout << "Command Line Arguments:\n " << std::endl;
 	std::cout << "-f <path>:	Specifies the path to a single trace file which should be examined.\n" << std::endl;
 	std::cout << "-max <iteration>:	Specifies the iteration in which MAX-SAT solver is used instead of a SAT Solver. If this argument is not used MAX-SAT will not be used.\n" << std::endl;
+	std::cout << "-score <method>:	Specifies a classification score to use with MAX-SAT. Possible values: count|ratio|linear|quadratic\n" << std::endl;
 	std::cout << "-i:	Specifies whether an incremental solver should be used.\n" << std::endl;
 	std::cout << "-g:	Specifies whether a grammar is used to limit the output formulas.\n" << std::endl;
 	std::cout << "-sltl:	Specifies whether the input file is a SLTL example.\n" << std::endl;
@@ -286,6 +289,7 @@ int main(int argc, char* argv[]) {
 	bool using_SLTL = false;
 	int verbose = 0;
 	int optimized_Run = 0;
+	Score score = Score::Count;
 	char* input = nullptr;
 	std::vector<char*> input_Files;
 
@@ -297,8 +301,19 @@ int main(int argc, char* argv[]) {
 	for (int i = 0; i < argc; i++) {
 		if (!strcmp(argv[i], "-g")) using_Grammar = true;
 		if (!strcmp(argv[i], "-i")) using_Incremental = true;
-		if (!strcmp(argv[i], "-f")&& (i + 1) < argc) input = argv[i + 1];
-		if (!strcmp(argv[i], "-max") && (i + 1) < argc) optimized_Run = std::stoi(argv[i + 1]);
+		if (!strcmp(argv[i], "-f")&& (i + 1) < argc) {input = argv[i + 1]; i+=1;}
+		if (!strcmp(argv[i], "-max") && (i + 1) < argc) {optimized_Run = std::stoi(argv[i + 1]); i+=1;}
+		if (!strcmp(argv[i], "-score") && (i + 1) < argc) {
+			if      (!strcmp(argv[i+1], "count"))  score = Score::Count;
+			else if (!strcmp(argv[i+1], "ratio"))  score = Score::Ratio;
+			else if (!strcmp(argv[i+1], "linear")) score = Score::Linear;
+			else if (!strcmp(argv[i+1], "quadra")) score = Score::Quadra;
+			else {
+				std::cout << "invalid classification score: " << argv[i+1] << std::endl;
+				return 1;
+			}
+			i+=1;
+		}
 		if (!strcmp(argv[i], "-sltl")) using_SLTL = true;
 		if (!strcmp(argv[i], "-range") && (i + 2) < argc) {
 
@@ -329,6 +344,7 @@ int main(int argc, char* argv[]) {
 					input_Files.push_back(input_File);
 				}
 				infile.close();
+				i+=2;
 			}
 		}
 		if (!strcmp(argv[i], "-h") || argc  == 1) {
@@ -348,13 +364,13 @@ int main(int argc, char* argv[]) {
 
 		// execute for all files in a range
 
-		solve_Multiple_Files(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input_Files, verbose);
+		solve_Multiple_Files(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, input_Files, verbose);
 	}
 	else if(input){
 
 		// execute for a single file
 
-		solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, input, verbose);
+		solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, input, verbose);
 	}
 	else {
 		std::cout << "No input File\n" << std::endl;
