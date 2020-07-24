@@ -193,6 +193,11 @@ public:
 	void set_Score(Score score) {this->score = score;};
 
 	/*
+	Sets a sufficient classification score to be achieved (before the optimized_Run iteration occurs).
+	*/
+	void set_Score_Goal(double score_goal) {this->score_goal = score_goal;};
+
+	/*
 	Sets the setting of all data structures to use an incremental solver and constructs this solver.
 	*/
 	void set_Using_Incremental();
@@ -231,6 +236,13 @@ protected:
 	The classification score used with the optimizer.
 	*/
 	Score score = Score::Count;
+
+	/*
+	The minimum classification score to be acchieved.
+	If lower than 1, an optimizer instead of a solver is used.
+	This wil be ignored when the optimized run iteration is reached.
+	*/
+	double score_goal = 1.0;
 
 	/*
 	The number of variables used in each letter.

@@ -212,7 +212,11 @@ Executes the algorithm for given parameters for a single input.
 	optimized_Run: gives the iteration in which max sat is used instead of sat
 	input_Split: the different sections of the file
 */
-Dataset_Result solve_Single_Dataset(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, Score score, std::vector<std::vector<std::string>> &input_Split, int verbose) {
+Dataset_Result solve_Single_Dataset(
+	bool using_Grammar, bool using_Incremental, bool using_SLTL,
+	int optimized_Run, Score score, double score_goal,
+	std::vector<std::vector<std::string>> &input_Split, int verbose)
+{
 	Formula* formula;
 	int grammar_Index;
 
@@ -236,6 +240,7 @@ Dataset_Result solve_Single_Dataset(bool using_Grammar, bool using_Incremental, 
 	}
 
 	formula->set_Score(score);
+	formula->set_Score_Goal(score_goal);
 
 	if (using_Incremental) {
 		formula->set_Using_Incremental();
@@ -339,7 +344,10 @@ Dataset_Result solve_Single_Dataset(bool using_Grammar, bool using_Incremental, 
 		}
 		input_Split[0] = next_positive_Sample_String;
 		input_Split[1] = next_negative_Sample_String;
-		Dataset_Result posResult = solve_Single_Dataset(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, input_Split, verbose);
+		Dataset_Result posResult = solve_Single_Dataset(
+			using_Grammar, using_Incremental, using_SLTL,
+			optimized_Run, score, score_goal,
+			input_Split, verbose);
 
 		nodeResult.formula = "("+result.formula+"&&"+posResult.formula+")";
 		nodeResult.ansi_formula = ANSI_FORMULA("(")+result.formula+ANSI_FORMULA("&&")+posResult.ansi_formula+ANSI_FORMULA(")");
@@ -377,7 +385,10 @@ Dataset_Result solve_Single_Dataset(bool using_Grammar, bool using_Incremental, 
 		}
 		input_Split[0] = next_positive_Sample_String;
 		input_Split[1] = next_negative_Sample_String;
-		Dataset_Result negResult = solve_Single_Dataset(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, input_Split, verbose);
+		Dataset_Result negResult = solve_Single_Dataset(
+			using_Grammar, using_Incremental, using_SLTL,
+			optimized_Run, score, score_goal,
+			input_Split, verbose);
 
 		nodeResult.formula = "("+nodeResult.formula+"||(!"+result.formula+"&&"+negResult.formula+"))";
 		nodeResult.ansi_formula = ANSI_FORMULA("(")+nodeResult.ansi_formula+ANSI_FORMULA("||(!")+result.formula+ANSI_FORMULA("&&")+negResult.ansi_formula+ANSI_FORMULA("))");
@@ -402,7 +413,10 @@ Executes the algorithm for given parameters for a single input file.
 	optimized_Run: gives the iteration in which max sat is used instead of sat
 	input: the paths to the input file
 */
-Dataset_Result solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, Score score, char * input, int verbose)
+Dataset_Result solve_Single_File(
+	bool using_Grammar, bool using_Incremental, bool using_SLTL,
+	int optimized_Run, Score score, double score_goal,
+	char * input, int verbose)
 {
 	std::vector<std::vector<std::string>> input_Split;
 
@@ -430,7 +444,10 @@ Dataset_Result solve_Single_File(bool using_Grammar, bool using_Incremental, boo
 		std::cout << " max=" << optimized_Run;
 		std::cout << ":" << std::endl;
 	}
-	Dataset_Result rootResult = solve_Single_Dataset(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, input_Split, verbose);
+	Dataset_Result rootResult = solve_Single_Dataset(
+		using_Grammar, using_Incremental, using_SLTL,
+		optimized_Run, score, score_goal,
+		input_Split, verbose);
 
 	clock_t end = clock();
 	rootResult.time = (end - start) / (double)CLOCKS_PER_SEC;
@@ -461,7 +478,10 @@ Executes the algorithm for given parameters for a set of inputs.
 	optimized_Run: gives the iteration in which max sat is used instead of sat
 	input_Files: a vector of paths to the input files
 */
-int solve_Multiple_Files(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, Score score, std::vector<char*> input_Files, int verbose) {
+int solve_Multiple_Files(
+	bool using_Grammar, bool using_Incremental, bool using_SLTL,
+	int optimized_Run, Score score, double score_goal,
+	std::vector<char*> input_Files, int verbose) {
 
 	std::ofstream csv_result;
 	csv_result.open("results.csv");
@@ -489,7 +509,10 @@ int solve_Multiple_Files(bool using_Grammar, bool using_Incremental, bool using_
 
 		if (input_Files.size() > 1) std::cout << "\nSOLVING " << file << std::endl;
 
-		Dataset_Result result = solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, file, verbose);
+		Dataset_Result result = solve_Single_File(
+            using_Grammar, using_Incremental, using_SLTL,
+            optimized_Run, score, score_goal,
+            file, verbose);
 		if (!result.success) status = 1;
 
 		/* "Traces" */
@@ -506,7 +529,10 @@ int solve_Multiple_Files(bool using_Grammar, bool using_Incremental, bool using_
 			case Score::Linear: score_method = "linear"; break;
 			case Score::Quadra: score_method = "quadra"; break;
 		}
-		csv_result << "," << "DecisionTree[score=" << score_method << " max=" << optimized_Run << "]";
+		csv_result << "," << "DecisionTree[score=" << score_method;
+		if (optimized_Run>0) csv_result << " max=" << optimized_Run;
+		if (score_goal<1) csv_result << " min=" << score_goal;
+		csv_result << "]";
 		/* "Success" */
 		csv_result << "," << result.success;
 		/* "Time passed" */
@@ -554,6 +580,7 @@ int main(int argc, char* argv[]) {
 	int verbose = 0;
 	int optimized_Run = 0;
 	Score score = Score::Count;
+	double score_goal = 1.0;
 	std::vector<char*> input_Files;
 
 
@@ -577,6 +604,7 @@ int main(int argc, char* argv[]) {
 			}
 			i+=1;
 		}
+		if (!strcmp(argv[i], "-min") && (i + 1) < argc) {score_goal = std::stod(argv[i + 1]); i+=1;}
 		if (!strcmp(argv[i], "-sltl")) using_SLTL = true;
 		if (!strcmp(argv[i], "-range") && (i + 2) < argc) {
 
@@ -627,7 +655,10 @@ int main(int argc, char* argv[]) {
 
 		// execute for all input files
 
-		return solve_Multiple_Files(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, input_Files, verbose);
+		return solve_Multiple_Files(
+            using_Grammar, using_Incremental, using_SLTL,
+            optimized_Run, score, score_goal,
+            input_Files, verbose);
 	}
 	else {
 		std::cout << "No input File\n" << std::endl;
