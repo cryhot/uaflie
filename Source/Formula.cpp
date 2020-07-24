@@ -40,6 +40,9 @@ void Formula::add_Variables(){
 Solver_Result Formula::solve_Iteration_Incrementally(){
 
 	if (optimized_Run == 0) {
+		score_goal = 0.0;
+	}
+	if (score_goal < 1.0) {
 		//TODO
 	}
 
@@ -92,6 +95,9 @@ Solver_Result Formula::solve_Iteration()
 	z3::optimize optimize(context);
 	z3::solver solver(context);
 	if (optimized_Run == 0) {
+		score_goal = 0.0;
+	}
+	if (score_goal < 1.0) {
 		solver_Optimizer = new Max_Sat_Solver(optimize);
 	} else {
 		solver_Optimizer = new Sat_Solver(solver);
@@ -101,25 +107,30 @@ Solver_Result Formula::solve_Iteration()
 
 	Solver_Result result;
 	if (solver_Optimizer->check() == z3::sat) {
-		finish = clock();
-		z3_Time += (finish - start) / (double)CLOCKS_PER_SEC;
-		start = clock();
 		make_Result(*solver_Optimizer, result);
-		if (verbose >= 2) {
-			if (solver_Optimizer->using_Optimize)
-				std::cout << "satisfiable: " << result.score << std::endl;
-			else
-				std::cout << "satisfiable" << std::endl;
+		if (result.score < score_goal) {
+			result.satisfiable = false;
 		}
-		if (verbose >= 0) std::cout << result.formula << std::endl;
-	}
-	else {
-		finish = clock();
-		z3_Time += (finish - start) / (double)CLOCKS_PER_SEC;
-		start = clock();
-
-		if (verbose >= 2) std::cout << "not satisfiable" << std::endl;
+	} else {
 		result.satisfiable = false;
+	}
+
+	finish = clock();
+	z3_Time += (finish - start) / (double)CLOCKS_PER_SEC;
+	start = clock();
+
+	if (verbose >= 2) {
+		if (result.satisfiable)
+			std::cout << "satisfiable";
+		else
+			std::cout << "not satisfiable";
+		if (solver_Optimizer->using_Optimize)
+			std::cout << ": " << result.score;
+		std::cout << std::endl;
+	}
+	if (verbose >= 0) {
+		if (result.satisfiable)
+			std::cout << result.formula << std::endl;
 	}
 	return result;
 	

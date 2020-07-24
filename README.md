@@ -124,6 +124,14 @@ This grammar would constrain the output formula to start with a Finally operator
 
 As it is unclear at the beginning how big the resulting formula is, a maximal size (*max*) can be input. If this option is chosen the program continues to compute the smallest formula consistent with the input sample. In contrast to the base program this will end if the formula would get bigger than *max*. The program then outputs a formula the size of *max* which classifies the maximal number of words in the input sample.
 
+The way the program optimizes the number of correctly classified words can be affected simultaneously by attributing some weights to the traces (see the traces format) and by redefining the *classification score*:
+- `count`: optimize the number of correctly classified traces
+- `ratio`: balances the weights such that all the negative traces and all the positive traces have the same total weight.
+- `linear`: same as `count` but use an expression to maximize instead of weighted clauses.
+- `quadratic`: maximize the product of correctly classified negative traces and positive traces.
+
+Instead of giving a maximal formula size (or on top of it), the user can specify a minimal classification score to be achieved (*min*). The program stops when a satisfying score is reached. It will then use an optimizer at each iteration.
+
 # Command Line Arguments
 
 Here i will explain which command line arguments can be used to solve the various problems described in the previous section. Without any arguments the program will output a help text. 
@@ -133,6 +141,7 @@ Here i will explain which command line arguments can be used to solve the variou
 |-f \<path>| Specifies the path to a single trace file which should be examined. If no further argument is given, the program will solve the [LTL problem](#ltl).                
 |-max \<iteration>|Specifies the maximal size a formula should take. If this argument is specified the [optimizing](#optimizing) problem will be solved. This argument can be used in both the [LTL](#ltl) and [SLTL](#sltl) case.
 | -score \<method> | Specifies a classification score to use while [optimizing](#optimizing). Can be `count`,`ratio`,`linear`,`quadratic`.
+| -min \<score> | Specifies the minimal classification score the formula should have (between 0 and 1). If this argument is less than 1.0 (the default), the [optimizing](#optimizing) problem will be solved until the effective score is greater or equal than the one specified, or the formula size is equal to `-max` (if specified).
 |-g | Specifies whether a grammar like in section [CFG](#using-context-free-grammar) is used to constrain the output formulas. This option can only be used in the [LTL](#ltl) case. 
 |-sltl| This is used if the  [SLTL problem](#sltl) should be solved instead of the [LTL problem](#ltl).
 |-v| Outputs the computation time at the end of the program.

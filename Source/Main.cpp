@@ -198,7 +198,10 @@ Executes the algorithm for given parameters for a single input file.
 	optimized_Run: gives the iteration in which max sat is used instead of sat
 	input: the paths to the input file
 */
-void solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, Score score, char * input, int verbose)
+void solve_Single_File(
+	bool using_Grammar, bool using_Incremental, bool using_SLTL,
+	int optimized_Run, Score score, double score_goal,
+	char * input, int verbose)
 {
 	Formula* formula;
 	std::vector<std::vector<std::string>> input_Split;
@@ -227,6 +230,7 @@ void solve_Single_File(bool using_Grammar, bool using_Incremental, bool using_SL
 	}
 
 	formula->set_Score(score);
+	formula->set_Score_Goal(score_goal);
 
 	if (using_Incremental) {
 		formula->set_Using_Incremental();
@@ -245,7 +249,10 @@ Executes the algorithm for given parameters for a set of inputs.
 	optimized_Run: gives the iteration in which max sat is used instead of sat
 	input_Files: a vector of paths to the input files
 */
-void solve_Multiple_Files(bool using_Grammar, bool using_Incremental, bool using_SLTL, int optimized_Run, Score score, std::vector<char*> input_Files, int verbose) {
+void solve_Multiple_Files(
+	bool using_Grammar, bool using_Incremental, bool using_SLTL,
+	int optimized_Run, Score score, double score_goal,
+	std::vector<char*> input_Files, int verbose) {
 
 
 	std::ofstream myfile;
@@ -255,7 +262,10 @@ void solve_Multiple_Files(bool using_Grammar, bool using_Incremental, bool using
 	for (char* file : input_Files) {
 		clock_t start = clock();
 
-		solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, file, verbose);
+		solve_Single_File(
+			using_Grammar, using_Incremental, using_SLTL,
+			optimized_Run, score, score_goal,
+			file, verbose);
 
 		clock_t end = clock();
 
@@ -290,6 +300,7 @@ int main(int argc, char* argv[]) {
 	int verbose = 0;
 	int optimized_Run = 0;
 	Score score = Score::Count;
+	double score_goal = 1.0;
 	char* input = nullptr;
 	std::vector<char*> input_Files;
 
@@ -314,6 +325,7 @@ int main(int argc, char* argv[]) {
 			}
 			i+=1;
 		}
+		if (!strcmp(argv[i], "-min") && (i + 1) < argc) {score_goal = std::stod(argv[i + 1]); i+=1;}
 		if (!strcmp(argv[i], "-sltl")) using_SLTL = true;
 		if (!strcmp(argv[i], "-range") && (i + 2) < argc) {
 
@@ -364,13 +376,19 @@ int main(int argc, char* argv[]) {
 
 		// execute for all files in a range
 
-		solve_Multiple_Files(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, input_Files, verbose);
+		solve_Multiple_Files(
+			using_Grammar, using_Incremental, using_SLTL,
+			optimized_Run, score, score_goal,
+			input_Files, verbose);
 	}
 	else if(input){
 
 		// execute for a single file
 
-		solve_Single_File(using_Grammar, using_Incremental, using_SLTL, optimized_Run, score, input, verbose);
+		solve_Single_File(
+			using_Grammar, using_Incremental, using_SLTL,
+			optimized_Run, score, score_goal,
+			input, verbose);
 	}
 	else {
 		std::cout << "No input File\n" << std::endl;
