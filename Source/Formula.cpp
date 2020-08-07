@@ -133,7 +133,7 @@ Solver_Result Formula::solve_Iteration()
 			std::cout << result.formula << std::endl;
 	}
 	return result;
-	
+
 }
 
 void Formula::prepare_New_Iteration()
@@ -201,7 +201,7 @@ Solver_Result Formula::find_LTL()
 	Solver_Result result;
 
 	// is decreased one already since the first iteration has index 0
-	optimized_Run--; 
+	optimized_Run--;
 
 
 
@@ -219,6 +219,7 @@ Solver_Result Formula::find_LTL()
 
 	finish = clock();
 	own_Execution_Time += (finish - start) / (double)CLOCKS_PER_SEC;
+	result.time = own_Execution_Time + z3_Time;
 
 	if (verbose >= 1) std::cout << "\nOwn execution time: " << own_Execution_Time << std::endl;
 	if (verbose >= 1) std::cout << "Z3 execution time: " << z3_Time << std::endl;
@@ -385,6 +386,7 @@ void Formula::make_Result(Solve_And_Optimize& solver_Optimizer, Solver_Result& r
 	node_Vector = (Node**)malloc((iteration + 1) * sizeof(Node*));
 	Node* root = build_Tree(model, iteration, node_Vector, touched);
 	result.formula = print_Tree(root);
+	result.size = (iteration + 1);
 	for (int i = 0; i <= iteration; i++) {
 		delete node_Vector[i];
 	}
@@ -455,5 +457,3 @@ Formula::~Formula()
 {
 	delete solver;
 }
-
-

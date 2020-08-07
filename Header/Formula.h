@@ -46,12 +46,16 @@ struct Solver_Result
 	bool satisfiable;
 	/* Representation of the correct formula. */
 	std::string formula;
+	/* Iteration reached. */
+	int size;
 	/* Classification score. */
 	double score;
 	/* Indexes of the words of positive_Sample unsatisfying the formula. */
 	std::vector<unsigned int> false_negative;
 	/* Indexes of the words of negative_Sample satisfying the formula. */
 	std::vector<unsigned int> false_positive;
+	/* total execution time */
+	double time;
 };
 
 /*

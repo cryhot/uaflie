@@ -287,6 +287,37 @@ Dataset_Result solve_Single_Dataset(
 	nodeResult.node_count = 1;
 	nodeResult.depth = 1;
 
+	std::ofstream csv_partial_result;
+	csv_partial_result.open("results-partial.csv", std::ios::out|std::ios::app);
+	/* "Traces" */
+	csv_partial_result << nodeResult.positive_size+nodeResult.negative_size;
+	/* "Positive Traces" */
+	csv_partial_result << "," << nodeResult.positive_size;
+	/* "Negative Traces" */
+	csv_partial_result << "," << nodeResult.negative_size;
+	/* "Method" */
+	std::string score_method;
+	switch (score) {
+		case Score::Count:  score_method = "count";  break;
+		case Score::Ratio:  score_method = "ratio";  break;
+		case Score::Linear: score_method = "linear"; break;
+		case Score::Quadra: score_method = "quadra"; break;
+	}
+	csv_partial_result << "," << "[score=" << score_method;
+	if (optimized_Run>0) csv_partial_result << " max=" << optimized_Run;
+	if (score_goal<1) csv_partial_result << " min=" << score_goal;
+	csv_partial_result << "]";
+	/* "Score" */
+	csv_partial_result << "," << result.score;
+	/* "Time passed" */
+	csv_partial_result << "," << result.time;
+	/* "Formula" */
+	csv_partial_result << "," << result.formula;
+	/* "Size" */
+	csv_partial_result << "," << result.size;
+	csv_partial_result << "\n";
+	csv_partial_result.flush();
+
 	/* print current traces */
 	if (verbose >= 3) {
 		unsigned int j;
@@ -499,6 +530,19 @@ int solve_Multiple_Files(
 	csv_result << ",Formula Tree";
 	csv_result << "\n";
 	csv_result.flush();
+
+	std::ofstream csv_partial_result;
+	csv_partial_result.open("results-partial.csv");
+	csv_partial_result << "Traces";
+	csv_partial_result << ",Positive Traces";
+	csv_partial_result << ",Negative Traces";
+	csv_partial_result << ",Method";
+	csv_partial_result << ",Score";
+	csv_partial_result << ",Time passed";
+	csv_partial_result << ",Formula";
+	csv_partial_result << ",Size";
+	csv_partial_result << "\n";
+	csv_partial_result.flush();
 
 	int status = 0;
 	for (char* file : input_Files) {
