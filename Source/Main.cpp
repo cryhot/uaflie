@@ -32,6 +32,31 @@ SOFTWARE.
 #include "Header/Formula_SLTL.h"
 
 /*
+Parameters of the algorithm.
+
+	using_Grammar: is true if a grammar should be used in all files
+	using_Incremental: is true if an incremental solver should be used in all files
+	using_SLTL: is true if all files are SLTL files
+	optimized_Run: gives the iteration in which max sat is used instead of sat
+	score: which classification score to use when optimizing
+	score_goal: gives a sufficient classification score to be achieved (max sat will be used)
+		min_score_goal = score_goal + score_goal_traces * sample_size + score_goal_iterations * formula_size
+*/
+struct Formula_Parameters
+{
+	bool using_Grammar = false;
+	bool using_Incremental = false;
+	bool using_SLTL = false;
+	int verbose = 0;
+	int optimized_Run = 0;
+	Score score = Score::Count;
+	double score_goal = 1.0;
+	double score_goal_traces = 0.0;
+	double score_goal_iterations = 0.0;
+};
+
+
+/*
 Splits an LTL file into vectors of strings containing the different sections of the file:
 	0 all words which should be satisfied
 	1 all words which should not be satisfied
@@ -189,25 +214,63 @@ std::vector<std::vector<std::string>> split_Input_SLTL(char* input) {
 	return result;
 }
 
+int read_score_goal(Formula_Parameters& parameters, std::string terms) {
+	parameters.score_goal = 0;
+	parameters.score_goal_traces = 0;
+	parameters.score_goal_iterations = 0;
+	char sign = '+';
+	std::size_t prev = 0, pos;
+	while (true) {
+		pos = terms.find_first_of("+-", prev);
+		if (pos>0) {
+			std::string term = terms.substr(prev, pos-prev);
+			std::stringstream ss(term);
+			double term_val;
+			std::string term_type;
+			if (!(ss >> term_val)) {
+				std::cerr << "invalid goal term: \"" << term << "\"" << std::endl;
+				return 1;
+			}
+			term_val *= (sign=='+') ? 1 : -1;
+			std::getline(ss, term_type);
+			if      (!term_type.compare(""))  parameters.score_goal += term_val;
+			else if (!term_type.compare("T")) parameters.score_goal_traces += term_val;
+			else if (!term_type.compare("I")) parameters.score_goal_iterations += term_val;
+			else {
+				std::cerr << "invalid goal term: \"" << term << "\"" << std::endl;
+				return 1;
+			}
+		}
+		if (pos==std::string::npos) break;
+		sign = terms.at(pos);
+		prev = pos+1;
+	}
+	return 0;
+}
+
+std::string write_score_goal(Formula_Parameters& parameters) {
+	std::stringstream result;
+	if (parameters.score_goal>0 && result.tellp()>0) result << '+';
+	if (parameters.score_goal!=0) result << parameters.score_goal;
+	if (parameters.score_goal_traces>0 && result.tellp()>0) result << '+';
+	if (parameters.score_goal_traces!=0) result << parameters.score_goal_traces << "T";
+	if (parameters.score_goal_iterations>0 && result.tellp()>0) result << '+';
+	if (parameters.score_goal_iterations!=0) result << parameters.score_goal_iterations << "I";
+	return result.str();
+}
+
 /*
 Executes the algorithm for given parameters for a single input file.
 
-	using_Grammar: is true if a grammar should be used in all files
-	using_Incremental: is true if an incremental solver should be used in all files
-	using_SLTL: is true if all files are SLTL files
-	optimized_Run: gives the iteration in which max sat is used instead of sat
 	input: the paths to the input file
 */
-void solve_Single_File(
-	bool using_Grammar, bool using_Incremental, bool using_SLTL,
-	int optimized_Run, Score score, double score_goal,
-	char * input, int verbose)
+void solve_Single_File(char * input, Formula_Parameters parameters)
 {
 	Formula* formula;
 	std::vector<std::vector<std::string>> input_Split;
 	int grammar_Index;
 
-	if (!using_SLTL) {
+	if (!parameters.using_SLTL) {
 
 		input_Split = split_Input_LTL(input);
 		if (input_Split.size() < 1) return;
@@ -221,21 +284,21 @@ void solve_Single_File(
 		grammar_Index = 5;
 	}
 
-	if (using_Grammar) {
+	if (parameters.using_Grammar) {
 		formula->set_Grammar(input_Split[grammar_Index]);
 	}
 
-	if (optimized_Run > 0) {
-		formula->set_Optimized_Run(optimized_Run);
+	if (parameters.optimized_Run > 0) {
+		formula->set_Optimized_Run(parameters.optimized_Run);
 	}
 
-	formula->set_Score(score);
-	formula->set_Score_Goal(score_goal);
+	formula->set_Score(parameters.score);
+	formula->set_Score_Goal(parameters.score_goal, parameters.score_goal_traces,  parameters.score_goal_iterations);
 
-	if (using_Incremental) {
+	if (parameters.using_Incremental) {
 		formula->set_Using_Incremental();
 	}
-	formula->set_Vebose(verbose);
+	formula->set_Vebose(parameters.verbose);
 	formula->initialize();
 	formula->find_LTL();
 }
@@ -243,16 +306,9 @@ void solve_Single_File(
 /*
 Executes the algorithm for given parameters for a set of inputs.
 
-	using_Grammar: is true if a grammar should be used in all files
-	using_Incremental: is true if an incremental solver should be used in all files
-	using_SLTL: is true if all files are SLTL files
-	optimized_Run: gives the iteration in which max sat is used instead of sat
 	input_Files: a vector of paths to the input files
 */
-void solve_Multiple_Files(
-	bool using_Grammar, bool using_Incremental, bool using_SLTL,
-	int optimized_Run, Score score, double score_goal,
-	std::vector<char*> input_Files, int verbose) {
+void solve_Multiple_Files(std::vector<char*> input_Files, Formula_Parameters parameters) {
 
 
 	std::ofstream myfile;
@@ -262,10 +318,7 @@ void solve_Multiple_Files(
 	for (char* file : input_Files) {
 		clock_t start = clock();
 
-		solve_Single_File(
-			using_Grammar, using_Incremental, using_SLTL,
-			optimized_Run, score, score_goal,
-			file, verbose);
+		solve_Single_File(file, parameters);
 
 		clock_t end = clock();
 
@@ -284,6 +337,7 @@ void print_Help() {
 	std::cout << "-f <path>:	Specifies the path to a single trace file which should be examined.\n" << std::endl;
 	std::cout << "-max <iteration>:	Specifies the iteration in which MAX-SAT solver is used instead of a SAT Solver. If this argument is not used MAX-SAT will not be used.\n" << std::endl;
 	std::cout << "-score <method>:	Specifies a classification score to use with MAX-SAT. Possible values: count|ratio|linear|quadratic\n" << std::endl;
+	std::cout << "-min <score>[+/-<score_traces>T][+/-<score_iterations>I]:	Specifies the minimal classification score the formula should have (between 0 and 1). When this argument is less than 1, MAX-SAT will be used at each iteration.\n" << std::endl;
 	std::cout << "-i:	Specifies whether an incremental solver should be used.\n" << std::endl;
 	std::cout << "-g:	Specifies whether a grammar is used to limit the output formulas.\n" << std::endl;
 	std::cout << "-sltl:	Specifies whether the input file is a SLTL example.\n" << std::endl;
@@ -294,13 +348,7 @@ int main(int argc, char* argv[]) {
 
 	// Input Parameters:
 
-	bool using_Grammar = false;
-	bool using_Incremental = false;
-	bool using_SLTL = false;
-	int verbose = 0;
-	int optimized_Run = 0;
-	Score score = Score::Count;
-	double score_goal = 1.0;
+	Formula_Parameters parameters;
 	char* input = nullptr;
 	std::vector<char*> input_Files;
 
@@ -310,23 +358,26 @@ int main(int argc, char* argv[]) {
 	// setting the input parameters
 
 	for (int i = 0; i < argc; i++) {
-		if (!strcmp(argv[i], "-g")) using_Grammar = true;
-		if (!strcmp(argv[i], "-i")) using_Incremental = true;
+		if (!strcmp(argv[i], "-g")) parameters.using_Grammar = true;
+		if (!strcmp(argv[i], "-i")) parameters.using_Incremental = true;
 		if (!strcmp(argv[i], "-f")&& (i + 1) < argc) {input = argv[i + 1]; i+=1;}
-		if (!strcmp(argv[i], "-max") && (i + 1) < argc) {optimized_Run = std::stoi(argv[i + 1]); i+=1;}
+		if (!strcmp(argv[i], "-max") && (i + 1) < argc) {parameters.optimized_Run = std::stoi(argv[i + 1]); i+=1;}
 		if (!strcmp(argv[i], "-score") && (i + 1) < argc) {
-			if      (!strcmp(argv[i+1], "count"))  score = Score::Count;
-			else if (!strcmp(argv[i+1], "ratio"))  score = Score::Ratio;
-			else if (!strcmp(argv[i+1], "linear")) score = Score::Linear;
-			else if (!strcmp(argv[i+1], "quadra")) score = Score::Quadra;
+			if      (!strcmp(argv[i+1], "count"))  parameters.score = Score::Count;
+			else if (!strcmp(argv[i+1], "ratio"))  parameters.score = Score::Ratio;
+			else if (!strcmp(argv[i+1], "linear")) parameters.score = Score::Linear;
+			else if (!strcmp(argv[i+1], "quadra")) parameters.score = Score::Quadra;
 			else {
-				std::cout << "invalid classification score: " << argv[i+1] << std::endl;
+				std::cerr << "invalid classification score: " << argv[i+1] << std::endl;
 				return 1;
 			}
 			i+=1;
 		}
-		if (!strcmp(argv[i], "-min") && (i + 1) < argc) {score_goal = std::stod(argv[i + 1]); i+=1;}
-		if (!strcmp(argv[i], "-sltl")) using_SLTL = true;
+		if (!strcmp(argv[i], "-min") && (i + 1) < argc) {
+			if (read_score_goal(parameters, argv[i+1]) != 0) return 1;
+			i+=1;
+		}
+		if (!strcmp(argv[i], "-sltl")) parameters.using_SLTL = true;
 		if (!strcmp(argv[i], "-range") && (i + 2) < argc) {
 
 			int initial_Number = std::stoi(argv[i + 1]);
@@ -363,12 +414,12 @@ int main(int argc, char* argv[]) {
 			print_Help();
 			return 0;
 		}
-		if (!strcmp(argv[i], "-q")) verbose = -1;
-		if (!strcmp(argv[i], "-v")) verbose = 1;
-		if (!strcmp(argv[i], "-vv")) verbose = 2;
-		if (!strcmp(argv[i], "-vvv")) verbose = 3;
-		if (!strcmp(argv[i], "-vvvv")) verbose = 4;
-		if (!strcmp(argv[i], "-vvvvv")) verbose = 5;
+		if (!strcmp(argv[i], "-q")) parameters.verbose = -1;
+		if (!strcmp(argv[i], "-v")) parameters.verbose = 1;
+		if (!strcmp(argv[i], "-vv")) parameters.verbose = 2;
+		if (!strcmp(argv[i], "-vvv")) parameters.verbose = 3;
+		if (!strcmp(argv[i], "-vvvv")) parameters.verbose = 4;
+		if (!strcmp(argv[i], "-vvvvv")) parameters.verbose = 5;
 	}
 
 
@@ -376,19 +427,13 @@ int main(int argc, char* argv[]) {
 
 		// execute for all files in a range
 
-		solve_Multiple_Files(
-			using_Grammar, using_Incremental, using_SLTL,
-			optimized_Run, score, score_goal,
-			input_Files, verbose);
+		solve_Multiple_Files(input_Files, parameters);
 	}
 	else if(input){
 
 		// execute for a single file
 
-		solve_Single_File(
-			using_Grammar, using_Incremental, using_SLTL,
-			optimized_Run, score, score_goal,
-			input, verbose);
+		solve_Single_File(input, parameters);
 	}
 	else {
 		std::cout << "No input File\n" << std::endl;

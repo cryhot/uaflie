@@ -195,7 +195,11 @@ public:
 	/*
 	Sets a sufficient classification score to be achieved (before the optimized_Run iteration occurs).
 	*/
-	void set_Score_Goal(double score_goal) {this->score_goal = score_goal;};
+	void set_Score_Goal(double score_goal, double score_goal_traces=0, double score_goal_iterations=0) {
+		this->score_goal = score_goal;
+		this->score_goal_traces = score_goal_traces;
+		this->score_goal_iterations = score_goal_iterations;
+	};
 
 	/*
 	Sets the setting of all data structures to use an incremental solver and constructs this solver.
@@ -243,6 +247,8 @@ protected:
 	This wil be ignored when the optimized run iteration is reached.
 	*/
 	double score_goal = 1.0;
+	double score_goal_traces = 0.0;
+	double score_goal_iterations = 0.0;
 
 	/*
 	The number of variables used in each letter.
