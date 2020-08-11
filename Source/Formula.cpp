@@ -124,8 +124,8 @@ Solver_Result Formula::solve_Iteration()
 			std::cout << "satisfiable";
 		else
 			std::cout << "not satisfiable";
-		if (solver_Optimizer->using_Optimize)
-			std::cout << ": " << result.score;
+		if (solver_Optimizer->using_Optimize) std::cout << ": " << result.score;
+		if (score_goal != 1.0) std::cout << " (>=" << score_goal << ")";
 		std::cout << std::endl;
 	}
 	if (verbose >= 0) {
@@ -139,6 +139,7 @@ Solver_Result Formula::solve_Iteration()
 void Formula::prepare_New_Iteration()
 {
 	iteration++;
+	score_goal += score_goal_iterations;
 	add_Variables();
 
 	dag->add_Formulas(iteration);
@@ -440,7 +441,9 @@ void Formula::initialize()
 	positive_Sample->initialize();
 	negative_Sample->initialize();
 	if (using_Grammar) context_Free_Grammar->initialize();
-
+	score_goal += score_goal_iterations;
+	score_goal += score_goal_traces * positive_Sample->sample_Metadatas.size();
+	score_goal += score_goal_traces * negative_Sample->sample_Metadatas.size();
 }
 
 void Formula::set_Using_Incremental()
