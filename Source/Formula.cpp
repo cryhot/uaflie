@@ -108,7 +108,7 @@ Solver_Result Formula::solve_Iteration()
 	Solver_Result result;
 	if (solver_Optimizer->check() == z3::sat) {
 		make_Result(*solver_Optimizer, result);
-		if (result.score < score_goal) {
+		if (result.score < score_goal && result.score < 1) {
 			result.satisfiable = false;
 		}
 	} else {
