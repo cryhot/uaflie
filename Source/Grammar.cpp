@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -141,7 +141,7 @@ void Grammar::add_Formulas(int iteration)
 
 	// add Production
 	for (int k = 0; k < number_Of_Nonterminals; k++) {
-		for (int z = 0; z< number_Of_Variables + 7; z++) {
+		for (int z = 0; z <= number_Of_Variables + 7; z++) {
 			for (int q : map_To_Operators_k_Op[k][z]) {
 
 				formulas_Grammar.push_back(z3::implies(variables_S_i_k_q[iteration][k][q], dag.variables_x_lambda_i[z][iteration]));
