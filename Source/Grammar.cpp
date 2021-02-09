@@ -158,10 +158,10 @@ void Grammar::add_Formulas(int iteration)
 	add_One_Dimensional_Grammar(number_Of_Variables + 6, iteration);
 
 	// add two dimensional formulas
-	add_One_Dimensional_Grammar(number_Of_Variables + 1, iteration);
-	add_One_Dimensional_Grammar(number_Of_Variables + 2, iteration);
-	add_One_Dimensional_Grammar(number_Of_Variables + 3, iteration);
-	add_One_Dimensional_Grammar(number_Of_Variables + 7, iteration);
+	add_Two_Dimensional_Grammar(number_Of_Variables + 1, iteration);
+	add_Two_Dimensional_Grammar(number_Of_Variables + 2, iteration);
+	add_Two_Dimensional_Grammar(number_Of_Variables + 3, iteration);
+	add_Two_Dimensional_Grammar(number_Of_Variables + 7, iteration);
 
 }
 
