@@ -31,16 +31,19 @@ Sample_Tracer::Sample_Tracer(z3::context & context, Dag& dag, std::string sample
 
 void Sample_Tracer::add_Variables(int iteration)
 {
-	//add the Y_word_n_t
+	//add the Y_word_n_t_any and Y_word_n_t_all
 	int word_Index = 0;
 	for (Trace_Metadata word : sample_Metadatas) {
-		z3::expr_vector temp(context);
+		z3::expr_vector temp_any(context), temp_all(context);
 		for (int t = 0; t < word.size; t++) {
-			std::stringstream int_To_String;
-			int_To_String << "Y_" << sample_Name << "_" << word_Index << "_" << iteration << "_" << t;
-			temp.push_back(context.bool_const(int_To_String.str().c_str()));
+			std::stringstream int_To_String_any, int_To_String_all;
+			int_To_String_any << "Y_" << sample_Name << "_" << word_Index << "_" << iteration << "_" << t << "_any";
+			int_To_String_all << "Y_" << sample_Name << "_" << word_Index << "_" << iteration << "_" << t << "_all";
+			temp_any.push_back(context.real_const(int_To_String_any.str().c_str()));
+			temp_all.push_back(context.real_const(int_To_String_all.str().c_str()));
 		}
-		variables_Y_Word_i_t[word_Index].push_back(temp);
+		variables_Y_Word_i_t_any[word_Index].push_back(temp_any);
+		variables_Y_Word_i_t_all[word_Index].push_back(temp_all);
 		word_Index++;
 	}
 
@@ -77,7 +80,7 @@ void Sample_Tracer::add_Formulas_Not(int iteration) {
 
 	Operator_Not operator_Not = Operator_Not();
 	make_Formula_Unary(operator_Not, iteration, 0);
-	
+
 }
 
 void Sample_Tracer::add_Formulas_Atomic(int iteration)
@@ -89,7 +92,7 @@ void Sample_Tracer::add_Formulas_Or(int iteration)
 
 	Operator_Or operator_Or = Operator_Or();
 	make_Formula_Binary(operator_Or, iteration, 1);
-	
+
 }
 
 void Sample_Tracer::add_Formulas_And(int iteration)
@@ -97,7 +100,7 @@ void Sample_Tracer::add_Formulas_And(int iteration)
 
 	Operator_And operator_And = Operator_And();
 	make_Formula_Binary(operator_And, iteration, 2);
-	
+
 }
 
 void Sample_Tracer::add_Formulas_Implies(int iteration)
@@ -105,14 +108,14 @@ void Sample_Tracer::add_Formulas_Implies(int iteration)
 
 	Operator_Implies operator_Implies = Operator_Implies();
 	make_Formula_Binary(operator_Implies, iteration, 3);
-	
+
 }
 
 void Sample_Tracer::add_Formulas_Next(int iteration)
 {
 	Operator_Next operator_Next = Operator_Next();
 	make_Formula_Unary(operator_Next, iteration, 4);
-	
+
 }
 
 void Sample_Tracer::add_Formulas_Finally(int iteration)
@@ -126,7 +129,7 @@ void Sample_Tracer::add_Formulas_Globally(int iteration)
 
 	Operator_Globally operator_Globally = Operator_Globally();
 	make_Formula_Unary(operator_Globally, iteration, 6);
-	
+
 }
 
 void Sample_Tracer::add_Formulas_Until(int iteration)
@@ -145,7 +148,7 @@ void Sample_Tracer::make_Formula_Unary(Operator_Unary& op, int iteration, int op
 
 		z3::expr_vector left_Conjunction(context);
 		for (int j = 0; j < iteration; j++) {
-			z3::expr inner_Formula = op.make_Inner_Formula(iteration, j, word_Index, context, word.size, word.repetition, variables_Y_Word_i_t);
+			z3::expr inner_Formula = op.make_Inner_Formula(iteration, j, word_Index, context, word.size, word.repetition, variables_Y_Word_i_t_any, variables_Y_Word_i_t_all);
 			z3::expr implication = z3::implies(dag.variables_left_i_j[iteration][j], inner_Formula);
 			left_Conjunction.push_back(implication);
 		}
@@ -171,13 +174,13 @@ void Sample_Tracer::make_Formula_Binary(Operator_Binary& op, int iteration, int 
 		z3::expr_vector outer_Conjunction(context);
 		for (int j = 0; j < iteration; j++) {
 			for (int k = 0; k < iteration; k++) {
-				z3::expr inner_Formula = op.make_Inner_Formula(iteration, j, k, word_Index, context, word.size, word.repetition, variables_Y_Word_i_t);
+				z3::expr inner_Formula = op.make_Inner_Formula(iteration, j, k, word_Index, context, word.size, word.repetition, variables_Y_Word_i_t_any, variables_Y_Word_i_t_all);
 				z3::expr implication = z3::implies(dag.variables_left_i_j[iteration][j] && dag.variables_right_i_j[iteration][k], inner_Formula);
 				outer_Conjunction.push_back(implication);
 			}
 		}
 		//operator_Expr = z3::implies(variables_x_lambda_i[number_Of_Variables + operator_Index][iteration], z3::atleast(outer_Conjunction, outer_Conjunction.size()));
-		
+
 		operator_Expr = z3::implies(dag.variables_x_lambda_i[number_Of_Variables + operator_Index][iteration], z3::mk_and(outer_Conjunction));
 
 		if (using_Incremental) {
@@ -198,5 +201,6 @@ Sample_Tracer::~Sample_Tracer()
 {
 
 
-	variables_Y_Word_i_t.clear();
+	variables_Y_Word_i_t_any.clear();
+	variables_Y_Word_i_t_all.clear();
 }

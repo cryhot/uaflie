@@ -49,13 +49,8 @@ void Sample_Tracer_LTL::add_Formulas_Atomic(int iteration) {
 			z3::expr_vector atomic_Vector(context);
 			int t = 0;
 			for (std::vector<bool> letter : word.first) {
-
-				if (letter[p]) {
-					atomic_Vector.push_back(variables_Y_Word_i_t[word_Index][iteration][t]);
-				}
-				else {
-					atomic_Vector.push_back(!variables_Y_Word_i_t[word_Index][iteration][t]);
-				}
+				atomic_Vector.push_back(variables_Y_Word_i_t_any[word_Index][iteration][t] == context.bool_val(letter[p]));
+				atomic_Vector.push_back(variables_Y_Word_i_t_all[word_Index][iteration][t] == context.bool_val(letter[p]));
 				t++;
 			}
 			z3::expr atomic = z3::implies(dag.variables_x_lambda_i[p][iteration], z3::mk_and(atomic_Vector));
@@ -102,7 +97,8 @@ void Sample_Tracer_LTL::add_Formulas_Atomic(int iteration) {
 void Sample_Tracer_LTL::initialize()
 {
 	for (unsigned int i = 0; i < sample.size(); i++) {
-		variables_Y_Word_i_t.push_back(std::vector<z3::expr_vector>());
+		variables_Y_Word_i_t_any.push_back(std::vector<z3::expr_vector>());
+		variables_Y_Word_i_t_all.push_back(std::vector<z3::expr_vector>());
 	}
 
 	add_Variables(0);

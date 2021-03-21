@@ -49,10 +49,10 @@ std::pair<bool, std::string> Formula::solve_Iteration_Incrementally(){
 
 	// Only these Y Variables will be removed from the solver after the iteration
 	for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
-		solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0]);
+		solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t_all[i][iteration][0] > 0);
 	}
 	for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
-		solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0]);
+		solver_Optimizer.add(-negative_Sample->variables_Y_Word_i_t_any[i][iteration][0] > 0);
 	}
 
 
@@ -88,19 +88,20 @@ std::pair<bool, std::string> Formula::solve_Iteration()
 	if (optimized_Run == 0) {
 		return solve_Iteration_Optimize();
 	}
-	
-	z3::solver solver(context);
-	Sat_Solver solver_Optimizer = Sat_Solver(solver);
+
+	z3::optimize optimize(context);
+	Max_Sat_Solver solver_Optimizer = Max_Sat_Solver(optimize);
+	solver_Optimizer.using_Optimize = false;
 
 	add_Formulas(solver_Optimizer);
-	
+
 	std::pair<bool, std::string> result = std::make_pair(true, "");
-	if (solver.check() == z3::sat) {
+	if (optimize.check() == z3::sat) {
 		finish = clock();
 		z3_Time += (finish - start) / (double)CLOCKS_PER_SEC;
 		start = clock();
 		if (verbose >= 2) std::cout << "satisfiable" << std::endl;
-		z3::model model = solver.get_model();
+		z3::model model = optimize.get_model();
 		make_Result(model, result);
 	}
 	else {
@@ -312,24 +313,27 @@ void Formula::add_Formulas(Solve_And_Optimize& solver_Optimizer)
 	}
 
 	if (solver_Optimizer.using_Optimize) {
-		for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
-			solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0], positive_Sample->sample_Metadatas[i].weight);
-		}
-
-		for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
-			solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0], negative_Sample->sample_Metadatas[i].weight);
-		}
 	}
 	else {
 
 		for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
-			solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t[i][iteration][0]);
+			solver_Optimizer.add(positive_Sample->variables_Y_Word_i_t_all[i][iteration][0] > 0);
 		}
 
 		for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
-			solver_Optimizer.add(!negative_Sample->variables_Y_Word_i_t[i][iteration][0]);
+			solver_Optimizer.add(-negative_Sample->variables_Y_Word_i_t_any[i][iteration][0] > 0);
 		}
 	}
+
+	z3::expr_vector objective(context);
+	for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
+		objective.push_back(positive_Sample->variables_Y_Word_i_t_all[i][iteration][0] * positive_Sample->sample_Metadatas[i].weight);
+	}
+
+	for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
+		objective.push_back(-negative_Sample->variables_Y_Word_i_t_any[i][iteration][0] * negative_Sample->sample_Metadatas[i].weight);
+	}
+	solver_Optimizer.add_maximize(z3::sum(objective));
 
 
 	finish = clock();

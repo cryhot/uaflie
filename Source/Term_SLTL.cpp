@@ -87,40 +87,83 @@ Term_SLTL::Term_SLTL(std::string & input_Line)
 }
 
 
-z3::expr Term_SLTL::compute_Term(std::vector<signal_t>& signals, z3::expr_vector& constants, z3::context& context) {
+z3::expr Term_SLTL::compute_Term_boolean(std::vector<signal_t>& signals, z3::expr_vector& constants, z3::context& context, bool forall) {
 
+	std::pair<z3::expr,z3::expr> left = left_Term->compute_Term_arithmetic(signals, constants, context);
+	std::pair<z3::expr,z3::expr> right = right_Term->compute_Term_arithmetic(signals, constants, context);
 
-	z3::expr left(context);
-	z3::expr right(context);
-	z3::expr result(context);
+	if (forall) { // for all possible pathes
 
-	if (oper != 'c' && oper != 's') {
+		switch (oper) {
+		case '<':
+			return (right.first - left.second);
+		case '>':
+			return (left.first - right.second);
+		case '=':
+			return z3::min(right.first - left.second, left.first - right.second);
+		case '!':
+			return z3::max(right.first - left.second, left.first - right.second);
+		}
 
-		left = left_Term->compute_Term(signals, constants, context);
-		right = right_Term->compute_Term(signals, constants, context);
+	} else { // for at least one possible path
+
+		switch (oper) {
+		case '<':
+			return (right.second - left.first);
+		case '>':
+			return (left.second - right.first);
+		case '=':
+			return z3::min(right.second - left.first, left.second - right.first);
+		case '!':
+			return z3::max(right.second - left.first, left.second - right.first);
+		}
+
 	}
+
+	throw "Unknown boolean term";
+}
+
+std::pair<z3::expr,z3::expr> Term_SLTL::compute_Term_arithmetic(std::vector<signal_t>& signals, z3::expr_vector& constants, z3::context& context) {
+
+	// in a pair, first: lower bound, second: upper bound
+	// we assume (lower <= upper) always true
+	z3::expr lower(context);
+	z3::expr upper(context);
 
 	switch (oper) {
-	case '<':
-		result = (left < right);
-		return result;
-	case '>':
-		return (left_Term->compute_Term(signals, constants, context) > right_Term->compute_Term(signals, constants, context));
-	case '=':
-		return (left_Term->compute_Term(signals, constants, context) == right_Term->compute_Term(signals, constants, context));
-	case '!':
-		return (left_Term->compute_Term(signals, constants, context) != right_Term->compute_Term(signals, constants, context));
-	case '+':
-		return (left_Term->compute_Term(signals, constants, context) + right_Term->compute_Term(signals, constants, context));
-	case '*':
-		return (left_Term->compute_Term(signals, constants, context) * right_Term->compute_Term(signals, constants, context));
-	case '-':
-		return (left_Term->compute_Term(signals, constants, context) - right_Term->compute_Term(signals, constants, context));
-	case 'c':
-		return constants[var];
-	default:
-		return context.real_val(signals[var].first.c_str()); // TODO: handle full range
+		case 'c':
+			lower = constants[var];
+			upper = constants[var];
+			return std::make_pair(lower,upper);
+		case 's':
+			lower = context.real_val(signals[var].first.c_str());
+			upper = context.real_val(signals[var].second.c_str());
+			return std::make_pair(lower,upper);
 	}
+
+	std::pair<z3::expr,z3::expr> left = left_Term->compute_Term_arithmetic(signals, constants, context);
+	std::pair<z3::expr,z3::expr> right = right_Term->compute_Term_arithmetic(signals, constants, context);
+
+	switch (oper) {
+	case '+':
+		lower = (left.first + right.first);
+		upper = (left.second + right.second);
+		return std::make_pair(lower,upper);
+	case '-':
+		lower = (left.first - right.second);
+		upper = (left.second - right.first);
+		return std::make_pair(lower,upper);
+	case '*': {
+		z3::expr l_times_l = left.first * right.first;
+		z3::expr l_times_u = left.first * right.second;
+		z3::expr u_times_l = left.second * right.first;
+		z3::expr u_times_u = left.second * right.second;
+		lower = z3::min(z3::min(l_times_l, l_times_u), z3::min(u_times_l, u_times_u));
+		upper = z3::max(z3::max(l_times_l, l_times_u), z3::max(u_times_l, u_times_u));
+		return std::make_pair(lower,upper); }
+	}
+
+	throw "Unknown arithmetic term";
 }
 
 

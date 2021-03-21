@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -56,6 +56,8 @@ public:
 
 	virtual void add(z3::expr expr, int weight) {}
 
+	virtual void add_maximize(z3::expr expr) {}
+
 };
 
 class Sat_Solver:public Solve_And_Optimize{
@@ -84,6 +86,10 @@ public:
 
 	void add(z3::expr expr, int weight) {
 		optimize.add(expr, weight);
+	}
+
+	void add_maximize(z3::expr expr) {
+		optimize.maximize(expr);
 	}
 };
 

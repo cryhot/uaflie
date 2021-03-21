@@ -45,7 +45,8 @@ public:
 
 	Term_SLTL(std::string &input_Line);
 
-	z3::expr compute_Term(std::vector<signal_t>& signals, z3::expr_vector& constants, z3::context& context);
+	z3::expr compute_Term_boolean(std::vector<signal_t>& signals, z3::expr_vector& constants, z3::context& context, bool forall);
+	std::pair<z3::expr,z3::expr> compute_Term_arithmetic(std::vector<signal_t>& signals, z3::expr_vector& constants, z3::context& context);
 
 	std::string print_Term(z3::model& model, z3::expr_vector& constants);
 };
