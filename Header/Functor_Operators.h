@@ -28,26 +28,7 @@ SOFTWARE.
 #include <z3++.h>
 #include <vector>
 #include <assert.h>
-
-static z3::expr mk_max(z3::expr_vector const &args)
-{
-	assert (args.size() > 0);
-	z3::expr max = args[0];
-	for (z3::expr arg: args){
-		max = z3::max(max, arg);
-	}
-	return max;
-};
-
-static z3::expr mk_min(z3::expr_vector const &args)
-{
-	assert (args.size() > 0);
-	z3::expr min = args[0];
-	for (z3::expr arg: args){
-		min = z3::min(min, arg);
-	}
-	return min;
-};
+#include "Header/Utils.h"
 
 class Operator_Unary {
 

@@ -23,6 +23,7 @@ SOFTWARE.
 */
 
 #include "Header/Formula.h"
+#include "Header/Utils.h"
 #include <iostream>
 
 
@@ -327,13 +328,13 @@ void Formula::add_Formulas(Solve_And_Optimize& solver_Optimizer)
 
 	z3::expr_vector objective(context);
 	for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
-		objective.push_back(positive_Sample->variables_Y_Word_i_t_all[i][iteration][0] * positive_Sample->sample_Metadatas[i].weight);
+		objective.push_back(positive_Sample->variables_Y_Word_i_t_all[i][iteration][0]);
 	}
 
 	for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
-		objective.push_back(-negative_Sample->variables_Y_Word_i_t_any[i][iteration][0] * negative_Sample->sample_Metadatas[i].weight);
+		objective.push_back(-negative_Sample->variables_Y_Word_i_t_any[i][iteration][0]);
 	}
-	solver_Optimizer.add_maximize(z3::sum(objective));
+	solver_Optimizer.add_maximize(mk_min(objective));
 
 
 	finish = clock();
