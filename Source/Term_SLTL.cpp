@@ -184,8 +184,10 @@ std::string Term_SLTL::print_Term(z3::model& model, z3::expr_vector& constants) 
 		result << var;
 		if (oper == 'c') {
 			result << "(";
-			result << model.eval(constants[var]);
-
+			double value;
+			model.eval(constants[var]).is_numeral(value);
+			// result << model.eval(constants[var]);
+			result << value;
 			result << ")";
 		}
 	}

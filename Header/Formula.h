@@ -175,6 +175,8 @@ protected:
 	*/
 	z3::context context;
 
+	std::unique_ptr<z3::expr> objective;
+
 	/*
 	Pointer to the solver used in the incremental case.
 	Only is defined if an incremental approach is used

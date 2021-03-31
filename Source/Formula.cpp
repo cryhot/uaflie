@@ -101,8 +101,10 @@ std::pair<bool, std::string> Formula::solve_Iteration()
 		finish = clock();
 		z3_Time += (finish - start) / (double)CLOCKS_PER_SEC;
 		start = clock();
-		if (verbose >= 2) std::cout << "satisfiable" << std::endl;
 		z3::model model = optimize.get_model();
+		double robustness;
+		model.eval(*objective).is_numeral(robustness);
+		if (verbose >= 2) std::cout << "satisfiable (robustness=" << robustness << ")" << std::endl;
 		make_Result(model, result);
 	}
 	else {
@@ -128,8 +130,10 @@ std::pair<bool, std::string> Formula::solve_Iteration_Optimize() {
 		finish = clock();
 		z3_Time += (finish - start) / (double)CLOCKS_PER_SEC;
 		start = clock();
-		if (verbose >= 2) std::cout << "satisfiable" << std::endl;
 		z3::model model = optimize.get_model();
+		double robustness;
+		model.eval(*objective).is_numeral(robustness);
+		if (verbose >= 2) std::cout << "satisfiable (robustness=" << robustness << ")" << std::endl;
 		make_Result(model, result);
 	}
 	else {
@@ -326,16 +330,17 @@ void Formula::add_Formulas(Solve_And_Optimize& solver_Optimizer)
 		}
 	}
 
-	z3::expr_vector objective(context);
+	z3::expr_vector objectives(context);
 	for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
-		objective.push_back(positive_Sample->variables_Y_Word_i_t_all[i][iteration][0]);
+		objectives.push_back(positive_Sample->variables_Y_Word_i_t_all[i][iteration][0]);
 	}
 
 	for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
-		objective.push_back(-negative_Sample->variables_Y_Word_i_t_any[i][iteration][0]);
+		objectives.push_back(-negative_Sample->variables_Y_Word_i_t_any[i][iteration][0]);
 	}
-	solver_Optimizer.add_maximize(mk_min(objective));
-
+	objective = std::unique_ptr<z3::expr>(new z3::expr(context));
+	*objective = mk_min(objectives);
+	solver_Optimizer.add_maximize(*objective);
 
 	finish = clock();
 	own_Execution_Time += (finish - start) / (double)CLOCKS_PER_SEC;
@@ -366,6 +371,27 @@ void Formula::make_Result(z3::model& model, std::pair<bool, std::string>& result
 	}
 	delete[] node_Vector;
 	result.first = false;
+
+	if (verbose >= 2) {
+		double robustness;
+		double robustness2;
+		std::cout << "----------------------------------------\n";
+		std::cout << "Individual robustness\n";
+		std::cout << "---\n";
+		for (unsigned int i = 0; i < positive_Sample->sample_Metadatas.size(); i++) {
+			model.eval(positive_Sample->variables_Y_Word_i_t_all[i][iteration][0]).is_numeral(robustness);
+			model.eval(positive_Sample->variables_Y_Word_i_t_any[i][iteration][0]).is_numeral(robustness2);
+			std::cout << "min=" << robustness << " max=" << robustness2 << "\n";
+		}
+		std::cout << "---\n";
+		for (unsigned int i = 0; i < negative_Sample->sample_Metadatas.size(); i++) {
+			model.eval(-negative_Sample->variables_Y_Word_i_t_any[i][iteration][0]).is_numeral(robustness);
+			model.eval(-negative_Sample->variables_Y_Word_i_t_all[i][iteration][0]).is_numeral(robustness2);
+			std::cout << "min=" << robustness << " max=" << robustness2 << "\n";
+		}
+		std::cout << "----------------------------------------\n";
+	}
+
 	std::cout << result.second << std::endl;
 }
 
