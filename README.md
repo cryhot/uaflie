@@ -190,7 +190,7 @@ This an example of a trace line consisting of two variables. The values of these
 > x0: 1,0,1*
 	x1: 0,1,1*
 
-The integer after `::` is the time step from where the values will repeat. A negative value will reference a time step from the end. It will loop on the last time step if not specified (equivalent to `::-1`).
+The integer after `::` is the time step from where the values will repeat. A negative value will reference a time step from the end. If no repetition time step is specified, the trace is considered to be finite.
 
 A weight can be attached to the trace. To do so, add an integer between brackets after `::` and the time step repetition. When unspecified, default weight is `[1]`. This weight will be used when [optimizing](#optimizing).
 >1,0;0,1;1,1::2[6]
@@ -246,7 +246,7 @@ This an example of a trace line consisting of two variables. The values of these
 > x0: 1.0,0.1,(1.6)*
 		x1: 0.2,1.3,(1.0)*
 
-The integer after `::` is the time step from where the values will repeat. A negative value will reference a time step from the end. It will loop on the last time step if not specified (equivalent to `::-1`).
+The integer after `::` is the time step from where the values will repeat. A negative value will reference a time step from the end. If no repetition time step is specified, the trace is considered to be finite.
 
 A weight can be attached to the trace. To do so, add an integer between brackets after `::` and the time step repetition. When unspecified, default weight is `[1]`. This weight will be used when [optimizing](#optimizing).
 >1.0,0.2;0.1,1.3;1.6,1.0::2[6]

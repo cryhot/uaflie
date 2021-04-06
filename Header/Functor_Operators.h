@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -73,8 +73,12 @@ public:
 			inner_Formula.push_back(variables_Y_Word_i_t[word_Index][iteration][t] ==
 				variables_Y_Word_i_t[word_Index][j][t + 1]);
 		}
-		inner_Formula.push_back(variables_Y_Word_i_t[word_Index][iteration][word_Size - 1] ==
-			variables_Y_Word_i_t[word_Index][j][repetition]);
+		if (repetition<word_Size) {
+			inner_Formula.push_back(variables_Y_Word_i_t[word_Index][iteration][word_Size - 1] ==
+				variables_Y_Word_i_t[word_Index][j][repetition]);
+		} else {
+			inner_Formula.push_back(!variables_Y_Word_i_t[word_Index][iteration][word_Size - 1]);
+		}
 
 		return z3::mk_and(inner_Formula);
 	}
@@ -96,10 +100,9 @@ public:
 			int s = t;
 			z3::expr_vector conjunction(context);
 			int stopping_Time = (t <= repetition) ? word_Size - 1 : t - 1;
-			bool last_Loop_Done = false;
-			while (s != stopping_Time || !last_Loop_Done) {
-				if (s == stopping_Time) last_Loop_Done = true;
+			while (true) {
 				conjunction.push_back(variables_Y_Word_i_t[word_Index][j][s]);
+				if (s == stopping_Time) break;
 				s = (s < word_Size - 1) ? s + 1 : repetition;
 			}
 			conjunction_Outer.push_back(variables_Y_Word_i_t[word_Index][iteration][t] == z3::mk_or(conjunction));
@@ -146,10 +149,9 @@ public:
 			int s = t;
 			z3::expr_vector conjunction(context);
 			int stopping_Time = (t <= repetition) ? word_Size - 1 : t - 1;
-			bool last_Loop_Done = false;
-			while (s != stopping_Time || !last_Loop_Done) {
-				if (s == stopping_Time) last_Loop_Done = true;
+			while (true) {
 				conjunction.push_back(variables_Y_Word_i_t[word_Index][j][s]);
+				if (s == stopping_Time) break;
 				s = (s < word_Size - 1) ? s + 1 : repetition;
 			}
 			conjunction_Outer.push_back(variables_Y_Word_i_t[word_Index][iteration][t] == z3::mk_and(conjunction));
@@ -258,7 +260,28 @@ public:
 		z3::context& context, int word_Size, int repetition,
 		std::vector<std::vector<z3::expr_vector>>& variables_Y_Word_i_t)
 	{
+		z3::expr_vector conjunction_Outer(context);
+		for (int t = 0; t < word_Size; t++) {
+			int s = t;
+			z3::expr_vector disjunction(context);
+			int stopping_Time = (t <= repetition) ? word_Size - 1 : t - 1;
+			while (true) {
+				z3::expr_vector conjunction(context);
+				int q = t;
+				while (q != s) {
+					conjunction.push_back(variables_Y_Word_i_t[word_Index][j][q]);
+					q = (q < word_Size - 1) ? q + 1 : repetition;
+				}
+				conjunction.push_back(variables_Y_Word_i_t[word_Index][k][s]);
+				disjunction.push_back(z3::mk_and(conjunction));
+				if (s == stopping_Time) break;
+				s = (s < word_Size - 1) ? s + 1 : repetition;
+			}
+			conjunction_Outer.push_back(variables_Y_Word_i_t[word_Index][iteration][t] == z3::mk_or(disjunction));
+		}
+		z3::expr inner_Formula = z3::mk_and(conjunction_Outer);
 
+		/*
 		z3::expr_vector conjunction_Loop(context);
 
 		for (int t = 0; t < repetition; t++) {
@@ -297,6 +320,7 @@ public:
 
 
 		z3::expr inner_Formula = z3::mk_and(conjunction_Loop);
+		*/
 
 		return inner_Formula;
 	}
