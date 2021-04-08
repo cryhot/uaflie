@@ -63,6 +63,8 @@ struct Dataset_Result
 	std::string formula;
 	std::string ansi_formula;
 	std::vector<std::string> tree_formulas;
+	std::vector<int> tree_positive_size;
+	std::vector<int> tree_negative_size;
 	int node_count;
 	int depth;
 	double time;
@@ -363,6 +365,8 @@ Dataset_Result solve_Single_Dataset(std::vector<std::vector<std::string>> &input
 	else
 		nodeResult.ansi_formula = ""+result.formula+"";
 	nodeResult.tree_formulas.push_back(result.formula);
+	nodeResult.tree_positive_size.push_back(positive_Sample_String.size());
+	nodeResult.tree_negative_size.push_back(negative_Sample_String.size());
 	nodeResult.node_count = 1;
 	nodeResult.depth = 1;
 
@@ -427,9 +431,13 @@ Dataset_Result solve_Single_Dataset(std::vector<std::vector<std::string>> &input
 	if (result.false_positive.empty()) {
 		// positive well sorted
 		nodeResult.tree_formulas.push_back("⊤");
+		nodeResult.tree_positive_size.push_back(positive_Sample_String.size()-result.false_negative.size());
+		nodeResult.tree_negative_size.push_back(result.false_positive.size());
 		if (parameters.verbose >= 1) std::cout << "⊤" << std::endl;
 	} else if (!nodeResult.success) {
 		nodeResult.tree_formulas.push_back("...");
+		nodeResult.tree_positive_size.push_back(positive_Sample_String.size()-result.false_negative.size());
+		nodeResult.tree_negative_size.push_back(result.false_positive.size());
 		if (parameters.verbose >= 1) std::cout << "..." << std::endl;
 	} else {
 		std::vector<std::string> next_negative_Sample_String; // all negative words classified as positive
@@ -449,6 +457,8 @@ Dataset_Result solve_Single_Dataset(std::vector<std::vector<std::string>> &input
 		nodeResult.formula = "("+result.formula+"&&"+posResult.formula+")";
 		nodeResult.ansi_formula = ANSI_FORMULA("(")+result.formula+ANSI_FORMULA("&&")+posResult.ansi_formula+ANSI_FORMULA(")");
 		for (std::string node_formula : posResult.tree_formulas) nodeResult.tree_formulas.push_back(node_formula);
+		for (int node_positive_size : posResult.tree_positive_size) nodeResult.tree_positive_size.push_back(node_positive_size);
+		for (int node_negative_size : posResult.tree_negative_size) nodeResult.tree_negative_size.push_back(node_negative_size);
 		nodeResult.success &= posResult.success;
 		nodeResult.node_count += posResult.node_count;
 		if (nodeResult.depth < posResult.depth+1) nodeResult.depth = posResult.depth+1;
@@ -464,9 +474,13 @@ Dataset_Result solve_Single_Dataset(std::vector<std::vector<std::string>> &input
 	if (result.false_negative.empty()) {
 		// negative well sorted
 		nodeResult.tree_formulas.push_back("⊥");
+		nodeResult.tree_positive_size.push_back(result.false_negative.size());
+		nodeResult.tree_negative_size.push_back(negative_Sample_String.size()-result.false_positive.size());
 		if (parameters.verbose >= 1) std::cout << "⊥" << std::endl;
 	} else if (!nodeResult.success) {
 		nodeResult.tree_formulas.push_back("...");
+		nodeResult.tree_positive_size.push_back(result.false_negative.size());
+		nodeResult.tree_negative_size.push_back(negative_Sample_String.size()-result.false_positive.size());
 		if (parameters.verbose >= 1) std::cout << "..." << std::endl;
 	} else {
 		std::vector<std::string> next_positive_Sample_String; // all positive words classified as negative
@@ -486,6 +500,8 @@ Dataset_Result solve_Single_Dataset(std::vector<std::vector<std::string>> &input
 		nodeResult.formula = "("+nodeResult.formula+"||(!"+result.formula+"&&"+negResult.formula+"))";
 		nodeResult.ansi_formula = ANSI_FORMULA("(")+nodeResult.ansi_formula+ANSI_FORMULA("||(!")+result.formula+ANSI_FORMULA("&&")+negResult.ansi_formula+ANSI_FORMULA("))");
 		for (std::string node_formula : negResult.tree_formulas) nodeResult.tree_formulas.push_back(node_formula);
+		for (int node_positive_size : negResult.tree_positive_size) nodeResult.tree_positive_size.push_back(node_positive_size);
+		for (int node_negative_size : negResult.tree_negative_size) nodeResult.tree_negative_size.push_back(node_negative_size);
 		nodeResult.success &= negResult.success;
 		nodeResult.node_count += negResult.node_count;
 		if (nodeResult.depth < negResult.depth+1) nodeResult.depth = negResult.depth+1;
@@ -502,7 +518,7 @@ Executes the algorithm for given parameters for a single input file.
 
 	input: the paths to the input file
 */
-Dataset_Result solve_Single_File(char * input, Formula_Parameters parameters)
+Dataset_Result solve_Single_File(char * input, Formula_Parameters parameters, std::ofstream &csv_result)
 {
 	std::vector<std::vector<std::string>> input_Split;
 
@@ -514,6 +530,10 @@ Dataset_Result solve_Single_File(char * input, Formula_Parameters parameters)
 	failResult.depth = 0;
 	failResult.time = 0;
 
+	/* "File Name" */
+	csv_result << input;
+	csv_result.flush();
+
 	if (!parameters.using_SLTL) {
 		input_Split = split_Input_LTL(input);
 	}
@@ -521,6 +541,17 @@ Dataset_Result solve_Single_File(char * input, Formula_Parameters parameters)
 		input_Split = split_Input_SLTL(input);
 	}
 	if (input_Split.size() < 1) return failResult;
+
+	/* "Traces" */
+	csv_result << "," << input_Split[0].size()+input_Split[1].size();
+	/* "Positive Traces" */
+	csv_result << "," << input_Split[0].size();
+	/* "Negative Traces" */
+	csv_result << "," << input_Split[1].size();
+	/* "Method" */
+	csv_result << "," << "DecisionTree";
+	write_method_parameters(csv_result, parameters);
+	csv_result.flush();
 
 	clock_t start = clock();
 
@@ -548,6 +579,28 @@ Dataset_Result solve_Single_File(char * input, Formula_Parameters parameters)
 			std::cout << "failure" << std::endl;
 	}
 
+	/* "Success" */
+	csv_result << "," << rootResult.success;
+	/* "Time passed" */
+	csv_result << "," << rootResult.time;
+	/* "Formula" */
+	csv_result << "," << rootResult.formula;
+	/* "Tree Nodes" */
+	csv_result << "," << rootResult.node_count;
+	/* "Tree Depth" */
+	csv_result << "," << rootResult.depth;
+	/* "Formula Tree" */
+	csv_result << ",";
+	std::string sep = "";
+	for (unsigned int i = 0; i < rootResult.tree_formulas.size(); i++) {
+		csv_result << sep << rootResult.tree_formulas[i];
+		csv_result << ":" << rootResult.tree_positive_size[i]+rootResult.tree_negative_size[i];
+		sep = ";";
+	}
+
+	csv_result << "\n";
+	csv_result.flush();
+
 	return rootResult;
 }
 
@@ -556,10 +609,10 @@ Executes the algorithm for given parameters for a set of inputs.
 
 	input_Files: a vector of paths to the input files
 */
-int solve_Multiple_Files(std::vector<char*> input_Files, Formula_Parameters parameters) {
+int solve_Multiple_Files(std::vector<char*> input_Files, Formula_Parameters parameters, char *output_File) {
 
 	std::ofstream csv_result;
-	csv_result.open("results.csv");
+	if (output_File != NULL) csv_result.open(output_File);
 
 	csv_result << "File Name";
 	csv_result << ",Traces";
@@ -591,44 +644,11 @@ int solve_Multiple_Files(std::vector<char*> input_Files, Formula_Parameters para
 	int status = 0;
 	for (char* file : input_Files) {
 
-		/* "File Name" */
-		csv_result << file;
-		csv_result.flush();
-
 		if (input_Files.size() > 1) std::cout << "\nSOLVING " << file << std::endl;
 
-		Dataset_Result result = solve_Single_File(file, parameters);
+		Dataset_Result result = solve_Single_File(file, parameters, csv_result);
 		if (!result.success) status = 1;
 
-		/* "Traces" */
-		csv_result << "," << result.positive_size+result.negative_size;
-		/* "Positive Traces" */
-		csv_result << "," << result.positive_size;
-		/* "Negative Traces" */
-		csv_result << "," << result.negative_size;
-		/* "Method" */
-		csv_result << "," << "DecisionTree";
-		write_method_parameters(csv_result, parameters);
-		/* "Success" */
-		csv_result << "," << result.success;
-		/* "Time passed" */
-		csv_result << "," << result.time;
-		/* "Formula" */
-		csv_result << "," << result.formula;
-		/* "Tree Nodes" */
-		csv_result << "," << result.node_count;
-		/* "Tree Depth" */
-		csv_result << "," << result.depth;
-		/* "Formula Tree" */
-		csv_result << ",";
-		std::string last_formula = result.tree_formulas.back();
-		result.tree_formulas.pop_back();
-		for (std::string formula : result.tree_formulas) csv_result << formula << ";";
-		csv_result << last_formula ;
-		result.tree_formulas.push_back(last_formula);
-
-		csv_result << "\n";
-		csv_result.flush();
 	}
 	csv_result.close();
 
@@ -653,6 +673,7 @@ int main(int argc, char* argv[]) {
 
 	Formula_Parameters parameters;
 	std::vector<char*> input_Files;
+	char* output_File = NULL;
 
 
 	std::vector<std::string> strings;
@@ -663,6 +684,7 @@ int main(int argc, char* argv[]) {
 		if (!strcmp(argv[i], "-g")) parameters.using_Grammar = true;
 		if (!strcmp(argv[i], "-i")) parameters.using_Incremental = true;
 		if (!strcmp(argv[i], "-f")&& (i + 1) < argc) {input_Files.push_back(argv[i + 1]); i+=1;}
+		if (!strcmp(argv[i], "-o")&& (i + 1) < argc) {output_File = argv[i + 1]; i+=1;}
 		if (!strcmp(argv[i], "-max") && (i + 1) < argc) {parameters.optimized_Run = std::stoi(argv[i + 1]); i+=1;}
 		if (!strcmp(argv[i], "-score") && (i + 1) < argc) {
 			if      (!strcmp(argv[i+1], "count"))  parameters.score = Score::Count;
@@ -727,7 +749,7 @@ int main(int argc, char* argv[]) {
 
 	if (input_Files.size() > 0) {
 		// execute for all input files
-		return solve_Multiple_Files(input_Files, parameters);
+		return solve_Multiple_Files(input_Files, parameters, output_File);
 	} else {
 		std::cout << "No input File\n" << std::endl;
 		print_Help();

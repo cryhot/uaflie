@@ -84,9 +84,9 @@ public:
 
 	virtual void add_maximize(z3::expr expr) {}
 
-	virtual z3::check_result check() {}
+	virtual z3::check_result check() = 0;
 
-	virtual z3::model get_model() {}
+	virtual z3::model get_model() = 0;
 
 	virtual void push() {}
 
