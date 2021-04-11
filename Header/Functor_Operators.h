@@ -313,14 +313,12 @@ public:
 				z3::expr_vector conjunction(context);
 				int q = t;
 				while (q != s) {
-					z3::expr q_In_Bounds = is_timestamp_in_bounds(s, t+lowerbound, t+upperbound, context, word_Size, repetition, max_Word_Period);
-					z3::expr_vector disjunction_q_In_Bound(context);
+					z3::expr q_In_Bounds = is_timestamp_in_bounds(q, t+lowerbound, t+upperbound, context, word_Size, repetition, max_Word_Period);
 					conjunction.push_back(variables_Y_Word_i_t[word_Index][j][q] || !q_In_Bounds);
 					q = (q < word_Size - 1) ? q + 1 : repetition;
 				}
 				z3::expr s_In_Bounds = is_timestamp_in_bounds(s, t+lowerbound, t+upperbound, context, word_Size, repetition, max_Word_Period);
-				conjunction.push_back(variables_Y_Word_i_t[word_Index][k][s] && s_In_Bounds);
-				disjunction.push_back(z3::mk_and(conjunction));
+				disjunction.push_back(z3::mk_and(conjunction) && variables_Y_Word_i_t[word_Index][k][s] && s_In_Bounds);
 				if (s == stopping_Time) break;
 				s = (s < word_Size - 1) ? s + 1 : repetition;
 			}
