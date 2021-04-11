@@ -115,8 +115,8 @@ public:
 				disjunction_all.push_back(variables_Y_Word_i_t_all[word_Index][j][s]); // too strong
 				s = (s < word_Size - 1) ? s + 1 : repetition;
 			}
-			conjunction_Outer.push_back(variables_Y_Word_i_t_any[word_Index][iteration][t] == mk_max(disjunction_any));
-			conjunction_Outer.push_back(variables_Y_Word_i_t_all[word_Index][iteration][t] == mk_max(disjunction_all));
+			conjunction_Outer.push_back(variables_Y_Word_i_t_any[word_Index][iteration][t] == mk_chain(&z3::max, disjunction_any, disjunction_any[0]));
+			conjunction_Outer.push_back(variables_Y_Word_i_t_all[word_Index][iteration][t] == mk_chain(&z3::max, disjunction_all, disjunction_all[0]));
 		}
 		z3::expr inner_Formula = z3::mk_and(conjunction_Outer);
 
@@ -168,8 +168,8 @@ public:
 				conjunction_all.push_back(variables_Y_Word_i_t_all[word_Index][j][s]);
 				s = (s < word_Size - 1) ? s + 1 : repetition;
 			}
-			conjunction_Outer.push_back(variables_Y_Word_i_t_any[word_Index][iteration][t] == mk_min(conjunction_any));
-			conjunction_Outer.push_back(variables_Y_Word_i_t_all[word_Index][iteration][t] == mk_min(conjunction_all));
+			conjunction_Outer.push_back(variables_Y_Word_i_t_any[word_Index][iteration][t] == mk_chain(&z3::min, conjunction_any, conjunction_any[0]));
+			conjunction_Outer.push_back(variables_Y_Word_i_t_all[word_Index][iteration][t] == mk_chain(&z3::min, conjunction_all, conjunction_all[0]));
 		}
 		z3::expr inner_Formula = z3::mk_and(conjunction_Outer);
 
@@ -302,13 +302,13 @@ public:
 				}
 				conjunction_any.push_back(variables_Y_Word_i_t_any[word_Index][k][s]);
 				conjunction_all.push_back(variables_Y_Word_i_t_all[word_Index][k][s]);
-				disjunction_any.push_back(mk_min(conjunction_any));
-				disjunction_all.push_back(mk_min(conjunction_all));
+				disjunction_any.push_back(mk_chain(&z3::min, conjunction_any, conjunction_any[0]));
+				disjunction_all.push_back(mk_chain(&z3::min, conjunction_all, conjunction_all[0]));
 				if (s == stopping_Time) break;
 				s = (s < word_Size - 1) ? s + 1 : repetition;
 			}
-			conjunction_Outer.push_back(variables_Y_Word_i_t_any[word_Index][iteration][t] == mk_max(disjunction_any));
-			conjunction_Outer.push_back(variables_Y_Word_i_t_all[word_Index][iteration][t] == mk_max(disjunction_all));
+			conjunction_Outer.push_back(variables_Y_Word_i_t_any[word_Index][iteration][t] == mk_chain(&z3::max, disjunction_any, disjunction_any[0]));
+			conjunction_Outer.push_back(variables_Y_Word_i_t_all[word_Index][iteration][t] == mk_chain(&z3::max, disjunction_all, disjunction_all[0]));
 		}
 		z3::expr inner_Formula = z3::mk_and(conjunction_Outer);
 

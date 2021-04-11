@@ -339,7 +339,7 @@ void Formula::add_Formulas(Solve_And_Optimize& solver_Optimizer)
 		objectives.push_back(-negative_Sample->variables_Y_Word_i_t_any[i][iteration][0]);
 	}
 	objective = std::unique_ptr<z3::expr>(new z3::expr(context));
-	*objective = mk_min(objectives);
+	*objective = mk_chain(&z3::min, objectives, objectives[0]);
 	solver_Optimizer.add_maximize(*objective);
 
 	finish = clock();
