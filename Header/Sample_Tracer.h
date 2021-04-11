@@ -68,6 +68,15 @@ public:
 
 	std::vector<Trace_Metadata> sample_Metadatas;
 
+	/*
+	The maximum size a word can have (without repetition)
+	*/
+	int max_Word_Size;
+	/*
+	The maximum timestamp we have to check.
+	*/
+	int max_Word_Period;
+
 	//Methods:---------------------------------------------------------------
 	
 	

@@ -197,6 +197,13 @@ Node* Formula::build_Tree(z3::model &model, int root, Node** node_Vector, std::v
 			break;
 		}
 	}
+	for (int p = 0; p < 2; p++) {
+		z3::expr param = model.eval(dag->variables_parameter_i_p[root][p]);
+		if (param.is_numeral())
+			root_Node->int_parameter[p] = param.get_numeral_int();
+		else
+			root_Node->int_parameter[p] = -1;
+	}
 
 	touched[root] = true;
 	node_Vector[root] = root_Node;
@@ -240,6 +247,22 @@ std::string Formula::find_LTL()
 	return result.second;	
 }
 
+void Formula::print_bounds(std::ostream& stream, int a, int b) {
+	int lowerbound = a;
+	int upperbound = a + max_Word_Size - b;
+	if (a != 0 || b != 0) {
+		stream << "[";
+		stream << lowerbound;
+		stream << ",";
+		if (b > 0) {
+			stream << upperbound;
+		} else {
+			stream << "inf";
+		}
+		stream << ")";
+	}
+}
+
 std::string Formula::print_Tree(Node *root)
 {
 	std::stringstream result;
@@ -270,14 +293,18 @@ std::string Formula::print_Tree(Node *root)
 		result << print_Tree(root->left);
 	}else if (root->formula == number_Of_Variables + 5) {
 		result << "F";
+		print_bounds(result, root->int_parameter[0], root->int_parameter[1]);
 		result << print_Tree(root->left);
 	}else if (root->formula == number_Of_Variables + 6) {
 		result << "G";
+		print_bounds(result, root->int_parameter[0], root->int_parameter[1]);
 		result << print_Tree(root->left);
 	}else if (root->formula == number_Of_Variables + 7) {
 		result << "(";
 		result << print_Tree(root->left);
-		result << ")U(";
+		result << ")U";
+		print_bounds(result, root->int_parameter[0], root->int_parameter[1]);
+		result << "(";
 		result << print_Tree(root->right);
 		result << ")";
 	}
@@ -403,8 +430,38 @@ void Formula::set_Grammar(std::vector<std::string>& grammar)
 	using_Grammar = true;
 }
 
+static int gcd(int a, int b)
+{
+	if (b == 0) return a;
+    return gcd(b, a % b);
+}
+
+static int lcm(int a, int b)
+{
+	return (a*b) / gcd(a, b);
+}
+
 void Formula::initialize()
 {
+	max_Word_Size = 0;
+	int max_Word_Prefix = 0;
+	int word_Period_LCM = 1;
+	for (Trace_Metadata word : positive_Sample->sample_Metadatas) {
+		max_Word_Size = std::max(max_Word_Size, word.size);
+		max_Word_Prefix = std::max(max_Word_Prefix, word.repetition);
+		word_Period_LCM = lcm(word_Period_LCM, word.size-word.repetition);
+	}
+	for (Trace_Metadata word : negative_Sample->sample_Metadatas) {
+		max_Word_Size = std::max(max_Word_Size, word.size);
+		max_Word_Prefix = std::max(max_Word_Prefix, word.repetition);
+		word_Period_LCM = lcm(word_Period_LCM, word.size-word.repetition);
+	}
+	max_Word_Period = max_Word_Prefix + word_Period_LCM;
+	positive_Sample->max_Word_Size = max_Word_Size;
+	negative_Sample->max_Word_Size = max_Word_Size;
+	positive_Sample->max_Word_Period = max_Word_Period;
+	negative_Sample->max_Word_Period = max_Word_Period;
+
 	dag->initialize();
 	positive_Sample->initialize();
 	negative_Sample->initialize();
