@@ -351,15 +351,15 @@ public:
 					q = (q < word_Size - 1) ? q + 1 : repetition;
 				}
                 s_In_Bounds.push_back(is_timestamp_in_bounds(s, t+lowerbound, t+upperbound, context, word_Size, repetition, max_Word_Period));
-				disjunction_any.push_back(variables_Y_Word_i_t_any[word_Index][k][s] && mk_chain(&z3::min, conjunction_any, conjunction_any[0], q_In_Bounds, context.bool_val(false)));
-				disjunction_all.push_back(variables_Y_Word_i_t_all[word_Index][k][s] && mk_chain(&z3::min, conjunction_all, conjunction_all[0], q_In_Bounds, context.bool_val(false)));
+				disjunction_any.push_back(mk_chain(&z3::min, conjunction_any, variables_Y_Word_i_t_any[word_Index][k][s], q_In_Bounds, context.bool_val(true)));
+				disjunction_all.push_back(mk_chain(&z3::min, conjunction_all, variables_Y_Word_i_t_all[word_Index][k][s], q_In_Bounds, context.bool_val(true)));
 				if (s == stopping_Time) break;
 				s = (s < word_Size - 1) ? s + 1 : repetition;
 			}
 			conjunction_Outer.push_back(variables_Y_Word_i_t_any[word_Index][iteration][t] == mk_chain(&z3::max, disjunction_any, disjunction_any[0], s_In_Bounds, context.bool_val(false)));
 			conjunction_Outer.push_back(variables_Y_Word_i_t_all[word_Index][iteration][t] == mk_chain(&z3::max, disjunction_all, disjunction_all[0], s_In_Bounds, context.bool_val(false)));
 		}
-		z3::expr inner_Formula = z3::mk_and(conjunction_Outer);
+		z3::expr inner_Formula = z3::mk_and(conjunction_Outer) && bounds_formula;
 
 		/*
 		z3::expr_vector conjunction_Loop(context);
