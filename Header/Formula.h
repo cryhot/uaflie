@@ -33,6 +33,32 @@ SOFTWARE.
 
 
 /*
+Enumeration to represent the classification score method.
+*/
+enum class Score { Count, Ratio, Linear, Quadra };
+
+/*
+Structure to represent solver result.
+*/
+struct Solver_Result
+{
+	/* True if the iteration was satisfiable. */
+	bool satisfiable;
+	/* Representation of the correct formula. */
+	std::string formula;
+	/* Iteration reached. */
+	int size;
+	/* Classification score. */
+	double score;
+	/* Indexes of the words of positive_Sample unsatisfying the formula. */
+	std::vector<unsigned int> false_negative;
+	/* Indexes of the words of negative_Sample satisfying the formula. */
+	std::vector<unsigned int> false_positive;
+	/* total execution time */
+	double time;
+};
+
+/*
 Structure to represent the DAG.
 */
 struct Node
@@ -58,6 +84,14 @@ public:
 
 	virtual void add_maximize(z3::expr expr) {}
 
+	virtual z3::check_result check() = 0;
+
+	virtual z3::model get_model() = 0;
+
+	virtual void push() {}
+
+	virtual void pop() {}
+
 };
 
 class Sat_Solver:public Solve_And_Optimize{
@@ -70,6 +104,22 @@ public:
 
 	void add(z3::expr expr){
 		solver.add(expr);
+	}
+
+	z3::check_result check() {
+		return solver.check();
+	}
+
+	z3::model get_model() {
+		return solver.get_model();
+	}
+
+	void push() {
+		return solver.push();
+	}
+
+	void pop() {
+		return solver.pop();
 	}
 };
 
@@ -91,6 +141,22 @@ public:
 	void add_maximize(z3::expr expr) {
 		optimize.maximize(expr);
 	}
+
+	z3::check_result check() {
+		return optimize.check();
+	}
+
+	z3::model get_model() {
+		return optimize.get_model();
+	}
+
+	void push() {
+		return optimize.push();
+	}
+
+	void pop() {
+		return optimize.pop();
+	}
 };
 
 
@@ -107,7 +173,7 @@ public:
 	/*
 	Find a LTL formula fullfilling all requirements.
 	*/
-	std::string find_LTL();
+	Solver_Result find_LTL();
 
 	/*
 	Set the grammar if a grammar is used.
@@ -124,6 +190,20 @@ public:
 		optimized_Run: the iteration in which an optimizer should be used
 	*/
 	void set_Optimized_Run(int optimized_Run) {this->optimized_Run = optimized_Run;};
+
+	/*
+	Sets the classification score to optimize.
+	*/
+	void set_Score(Score score) {this->score = score;};
+
+	/*
+	Sets a sufficient classification score to be achieved (before the optimized_Run iteration occurs).
+	*/
+	void set_Score_Goal(double score_goal, double score_goal_traces=0, double score_goal_iterations=0) {
+		this->score_goal = score_goal;
+		this->score_goal_traces = score_goal_traces;
+		this->score_goal_iterations = score_goal_iterations;
+	};
 
 	/*
 	Sets the setting of all data structures to use an incremental solver and constructs this solver.
@@ -159,6 +239,20 @@ protected:
 	The iteration in which an optimizer instead of a solver is used. (1,...)
 	*/
 	int optimized_Run = 0;
+
+	/*
+	The classification score used with the optimizer.
+	*/
+	Score score = Score::Count;
+
+	/*
+	The minimum classification score to be acchieved.
+	If lower than 1, an optimizer instead of a solver is used.
+	This wil be ignored when the optimized run iteration is reached.
+	*/
+	double score_goal = 1.0;
+	double score_goal_traces = 0.0;
+	double score_goal_iterations = 0.0;
 
 	/*
 	The number of variables used in each letter.
@@ -259,17 +353,12 @@ protected:
 	/*
 	Solves the current iteration.
 	*/
-	std::pair<bool, std::string> solve_Iteration();
+	Solver_Result solve_Iteration();
 
 	/*
 	Solves the current iteration with an incremental solver.
 	*/
-	std::pair<bool, std::string> solve_Iteration_Incrementally();
-
-	/*
-	Solves the current iteration with an optimizer.
-	*/
-	std::pair<bool, std::string> solve_Iteration_Optimize();
+	Solver_Result solve_Iteration_Incrementally();
 
 	/*
 	Constructs a string representing the formula of the tree.
@@ -285,7 +374,7 @@ protected:
 	/*
 	Creates the tree and Formula when everything is satisfiable
 	*/
-	void make_Result(z3::model& model, std::pair<bool, std::string>& result);
+	void make_Result(Solve_And_Optimize& solver_Optimizer, Solver_Result& result);
 
 	/*
 	sets the using_LTL variable to be true

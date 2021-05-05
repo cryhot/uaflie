@@ -82,10 +82,15 @@ public:
 			inner_Formula.push_back(variables_Y_Word_i_t_all[word_Index][iteration][t] ==
 				variables_Y_Word_i_t_all[word_Index][j][t + 1]);
 		}
-		inner_Formula.push_back(variables_Y_Word_i_t_any[word_Index][iteration][word_Size - 1] ==
-			variables_Y_Word_i_t_any[word_Index][j][repetition]);
-		inner_Formula.push_back(variables_Y_Word_i_t_all[word_Index][iteration][word_Size - 1] ==
-			variables_Y_Word_i_t_all[word_Index][j][repetition]);
+		if (repetition<word_Size) {
+			inner_Formula.push_back(variables_Y_Word_i_t_any[word_Index][iteration][word_Size - 1] ==
+				variables_Y_Word_i_t_any[word_Index][j][repetition]);
+			inner_Formula.push_back(variables_Y_Word_i_t_all[word_Index][iteration][word_Size - 1] ==
+				variables_Y_Word_i_t_all[word_Index][j][repetition]);
+		} else {
+			inner_Formula.push_back(variables_Y_Word_i_t_any[word_Index][iteration][word_Size - 1] == INT_MIN); // TODO: minus infinity
+            inner_Formula.push_back(variables_Y_Word_i_t_all[word_Index][iteration][word_Size - 1] == INT_MIN); // TODO: minus infinity
+		}
 
 		return z3::mk_and(inner_Formula);
 	}
@@ -108,11 +113,10 @@ public:
 			int s = t;
 			z3::expr_vector disjunction_any(context),  disjunction_all(context);
 			int stopping_Time = (t <= repetition) ? word_Size - 1 : t - 1;
-			bool last_Loop_Done = false;
-			while (s != stopping_Time || !last_Loop_Done) {
-				if (s == stopping_Time) last_Loop_Done = true;
+			while (true) {
 				disjunction_any.push_back(variables_Y_Word_i_t_any[word_Index][j][s]);
 				disjunction_all.push_back(variables_Y_Word_i_t_all[word_Index][j][s]); // too strong
+				if (s == stopping_Time) break;
 				s = (s < word_Size - 1) ? s + 1 : repetition;
 			}
 			conjunction_Outer.push_back(variables_Y_Word_i_t_any[word_Index][iteration][t] == mk_chain(&z3::max, disjunction_any, disjunction_any[0]));
@@ -161,11 +165,10 @@ public:
 			int s = t;
 			z3::expr_vector conjunction_any(context), conjunction_all(context);
 			int stopping_Time = (t <= repetition) ? word_Size - 1 : t - 1;
-			bool last_Loop_Done = false;
-			while (s != stopping_Time || !last_Loop_Done) {
-				if (s == stopping_Time) last_Loop_Done = true;
+			while (true) {
 				conjunction_any.push_back(variables_Y_Word_i_t_any[word_Index][j][s]); // too weak
 				conjunction_all.push_back(variables_Y_Word_i_t_all[word_Index][j][s]);
+				if (s == stopping_Time) break;
 				s = (s < word_Size - 1) ? s + 1 : repetition;
 			}
 			conjunction_Outer.push_back(variables_Y_Word_i_t_any[word_Index][iteration][t] == mk_chain(&z3::min, conjunction_any, conjunction_any[0]));

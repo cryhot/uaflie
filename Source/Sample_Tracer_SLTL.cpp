@@ -103,9 +103,13 @@ void Sample_Tracer_SLTL::create_Sample(std::vector<std::string> input_Sample_SLT
 		std::string remaining_word = line;
 
 		Trace_Metadata trace_Metadata = {.size=0, .repetition=-1, .weight=1};
+		bool finite = true;
 		if (std::getline(string_stream, line, ':')) {
 			if (std::getline(string_stream, line, '[')) {
-				if (line.size() > 0) trace_Metadata.repetition = std::stoi(line);
+				if (line.size() > 0) {
+					trace_Metadata.repetition = std::stoi(line);
+					finite = false;
+				}
 				if (std::getline(string_stream, line, ']')) {
 					trace_Metadata.weight = std::stoi(line);
 				}
@@ -148,8 +152,9 @@ void Sample_Tracer_SLTL::create_Sample(std::vector<std::string> input_Sample_SLT
 		}
 
 		trace_Metadata.size = letters.size();
-		if (trace_Metadata.repetition < 0) {
-			// index from the end
+		if (finite) {
+			trace_Metadata.repetition = trace_Metadata.size;
+		} else if (trace_Metadata.repetition < 0) { // index from the end
 			trace_Metadata.repetition = trace_Metadata.size + trace_Metadata.repetition;
 		}
 
