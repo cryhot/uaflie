@@ -120,21 +120,21 @@ void Sample_Tracer::add_Formulas_Next(int iteration)
 
 void Sample_Tracer::add_Formulas_Finally(int iteration)
 {
-	Operator_Finally operator_Finally = Operator_Finally();
+	Operator_Finally operator_Finally = Operator_Finally(max_Word_Size, max_Word_Period);
 	make_Formula_Unary(operator_Finally, iteration, 5);
 }
 
 void Sample_Tracer::add_Formulas_Globally(int iteration)
 {
 
-	Operator_Globally operator_Globally = Operator_Globally();
+	Operator_Globally operator_Globally = Operator_Globally(max_Word_Size, max_Word_Period);
 	make_Formula_Unary(operator_Globally, iteration, 6);
 
 }
 
 void Sample_Tracer::add_Formulas_Until(int iteration)
 {
-	Operator_Until operator_Until = Operator_Until();
+	Operator_Until operator_Until = Operator_Until(max_Word_Size, max_Word_Period);
 	make_Formula_Binary(operator_Until, iteration, 7);
 }
 
@@ -148,7 +148,8 @@ void Sample_Tracer::make_Formula_Unary(Operator_Unary& op, int iteration, int op
 
 		z3::expr_vector left_Conjunction(context);
 		for (int j = 0; j < iteration; j++) {
-			z3::expr inner_Formula = op.make_Inner_Formula(iteration, j, word_Index, context, word.size, word.repetition, variables_Y_Word_i_t_any, variables_Y_Word_i_t_all);
+			z3::expr inner_Formula = op.make_Inner_Formula(iteration, j, word_Index, context, word.size, word.repetition,
+				variables_Y_Word_i_t_any, variables_Y_Word_i_t_all, dag.variables_parameter_i_p[iteration]);
 			z3::expr implication = z3::implies(dag.variables_left_i_j[iteration][j], inner_Formula);
 			left_Conjunction.push_back(implication);
 		}
@@ -174,7 +175,8 @@ void Sample_Tracer::make_Formula_Binary(Operator_Binary& op, int iteration, int 
 		z3::expr_vector outer_Conjunction(context);
 		for (int j = 0; j < iteration; j++) {
 			for (int k = 0; k < iteration; k++) {
-				z3::expr inner_Formula = op.make_Inner_Formula(iteration, j, k, word_Index, context, word.size, word.repetition, variables_Y_Word_i_t_any, variables_Y_Word_i_t_all);
+				z3::expr inner_Formula = op.make_Inner_Formula(iteration, j, k, word_Index, context, word.size, word.repetition,
+					variables_Y_Word_i_t_any, variables_Y_Word_i_t_all, dag.variables_parameter_i_p[iteration]);
 				z3::expr implication = z3::implies(dag.variables_left_i_j[iteration][j] && dag.variables_right_i_j[iteration][k], inner_Formula);
 				outer_Conjunction.push_back(implication);
 			}

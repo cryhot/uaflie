@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) [2019] [Joshua Blickensdörfer]
+Copyright (c) [2019] [Joshua Blickensdï¿½rfer]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -75,6 +75,18 @@ public:
 	variables_left_i_j[i][j] should be true if and only if the right child of i is j
 	*/
 	std::vector<z3::expr_vector> variables_right_i_j;
+
+	/*
+	variables_parameter_i_p[i][p] should be the p'th parameter of node i
+	p can be:
+	0: int parameter
+	1: int parameter
+	nodes that use parameters:
+	- finally:  {0,1}
+	- globally: {0,1}
+	- until:    {0,1}
+	*/
+	std::vector<z3::expr_vector> variables_parameter_i_p;
 
 
 	//Methods:---------------------------------------------------------------

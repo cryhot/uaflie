@@ -66,6 +66,7 @@ struct Node
 	int formula;
 	Node *left;
 	Node *right;
+	int int_parameter[2];
 };
 
 /*
@@ -260,6 +261,16 @@ protected:
 	int number_Of_Variables;
 
 	/*
+	The maximum size a word can have (without repetition)
+	*/
+	int max_Word_Size;
+
+	/*
+	The maximum timestamp we have to check.
+	*/
+	int max_Word_Period;
+
+	/*
 	Is true if an incremental solver is used
 	*/
 	bool using_Incremental = false;
@@ -359,6 +370,11 @@ protected:
 	Solves the current iteration with an incremental solver.
 	*/
 	Solver_Result solve_Iteration_Incrementally();
+
+	/*
+	Add an interval representation to the string being constructed.
+	*/
+	virtual void print_bounds(std::ostream& stream, int a, int b);
 
 	/*
 	Constructs a string representing the formula of the tree.
