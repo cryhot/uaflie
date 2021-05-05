@@ -392,7 +392,7 @@ void Formula::make_Result(Solve_And_Optimize& solver_Optimizer, Solver_Result& r
 		model.eval(positive_Sample->variables_Y_Word_i_t_any[i][iteration][0]).is_numeral(robustness_any);
 		model.eval(positive_Sample->variables_Y_Word_i_t_all[i][iteration][0]).is_numeral(robustness_all);
 		// pos_weights += positive_Sample->sample_Metadatas[i].weight;
-		if (robustness_all > 0) {
+		if ((robustness_all + robustness_any) / 2 > 0) {
 			// pos_score += positive_Sample->sample_Metadatas[i].weight;
 		} else {
 			result.false_negative.push_back(i);
@@ -406,7 +406,7 @@ void Formula::make_Result(Solve_And_Optimize& solver_Optimizer, Solver_Result& r
 		model.eval(-negative_Sample->variables_Y_Word_i_t_all[i][iteration][0]).is_numeral(robustness_any);
 		model.eval(-negative_Sample->variables_Y_Word_i_t_any[i][iteration][0]).is_numeral(robustness_all);
 		// neg_weights += negative_Sample->sample_Metadatas[i].weight;
-		if (robustness_all > 0) {
+		if ((robustness_all + robustness_any) / 2 > 0) {
 			// neg_score += negative_Sample->sample_Metadatas[i].weight;
 		} else {
 			result.false_positive.push_back(i);
