@@ -90,8 +90,12 @@ public:
 			inner_Formula.push_back(variables_Y_Word_i_t[word_Index][iteration][t] ==
 				variables_Y_Word_i_t[word_Index][j][t + 1]);
 		}
-		inner_Formula.push_back(variables_Y_Word_i_t[word_Index][iteration][word_Size - 1] ==
-			variables_Y_Word_i_t[word_Index][j][repetition]);
+		if (repetition<word_Size) {
+			inner_Formula.push_back(variables_Y_Word_i_t[word_Index][iteration][word_Size - 1] ==
+				variables_Y_Word_i_t[word_Index][j][repetition]);
+		} else {
+			inner_Formula.push_back(!variables_Y_Word_i_t[word_Index][iteration][word_Size - 1]);
+		}
 
 		return z3::mk_and(inner_Formula);
 	}
