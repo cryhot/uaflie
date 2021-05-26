@@ -1,3 +1,16 @@
+This is the code of **TLI-RS-DT**, one of the four algorithms proposed in paper _"Uncertainty-Aware Signal Temporal Logic Inference"_:
+
+- [TLI-UA](https://github.com/cryhot/uaflie/tree/uaflie/TLI-UA)
+- [TLI-UA-DT](https://github.com/cryhot/uaflie/tree/uaflie/TLI-UA-DT)
+- [TLI-RS](https://github.com/cryhot/uaflie/tree/uaflie/TLI-RS)
+- [**TLI-RS-DT**](https://github.com/cryhot/uaflie/tree/uaflie/TLI-RS-DT)
+
+To run **TLI-RS-DT**, use the following command (see [command line arguments](#command-line-arguments) for more detail):
+
+<code>./flie -sltl -f _file.trace_ [-max _formula-size_] [-min _classification_] [-vv]</code>
+
+---
+
 # flie - The Formal Language Inference Engine
 
 flie offers various (syntax-guided) algorithms for learning descriptive (formal) languges from classified strings.
