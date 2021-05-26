@@ -1,3 +1,19 @@
+This is the code of **TLI-RS**, one of the four algorithms proposed in paper _"Uncertainty-Aware Signal Temporal Logic Inference"_:
+
+- [TLI-UA](https://github.com/cryhot/uaflie/tree/uaflie/TLI-UA)
+- [TLI-UA-DT](https://github.com/cryhot/uaflie/tree/uaflie/TLI-UA-DT)
+- [**TLI-RS**](https://github.com/cryhot/uaflie/tree/uaflie/TLI-RS)
+- [TLI-RS-DT](https://github.com/cryhot/uaflie/tree/uaflie/TLI-RS-DT)
+
+To run **TLI-RS**, use the following command (see [command line arguments](#command-line-arguments) for more detail):
+
+<code>./flie -sltl -f _file.trace_ [-max _formula-size_] [-vv]</code>
+
+Note that <code>-min _classification_</code> has only been implemented in [TLI-RS-DT](https://github.com/cryhot/uaflie/tree/uaflie/TLI-RS-DT)
+(one can run that code and ignore all decision-tree nodes but the root node, in order to achieve the same algorithm).
+
+---
+
 # flie - The Formal Language Inference Engine
 
 flie offers various (syntax-guided) algorithms for learning descriptive (formal) languges from classified strings.
@@ -11,10 +27,10 @@ flie can operate in two modes:
 2. Generating semi consistent models (i.e., formulas up to a given size correctly classifying as many strings as possible)
 
 For some formal languages, the user can restrict the search space for possible solutions using context-free grammars (see details below).
-The following table gives a detailed overview over flie's features. 
+The following table gives a detailed overview over flie's features.
 
 |      | Fully consistent | Fully consistent + syntax-guided | Semi consistent | Semi consistent + syntax-guided |
-|------|------------------|----------------------------------|-----------------|---------------------------------| 
+|------|------------------|----------------------------------|-----------------|---------------------------------|
 | LTL  | Yes              | Yes                              | Yes             | Yes                             |
 | SLTL | Yes              | No                               | Yes             | No                              |
 
@@ -58,7 +74,7 @@ You can also prefix the call to the make utility with these environment variable
 ```
 
 
-# Running flie 
+# Running flie
 
 To run flie, just execute the binary `flie` (respectively `flie.exe` on Windows):
 
@@ -126,25 +142,25 @@ As it is unclear at the beginning how big the resulting formula is, a maximal si
 
 # Command Line Arguments
 
-Here i will explain which command line arguments can be used to solve the various problems described in the previous section. Without any arguments the program will output a help text. 
+Here i will explain which command line arguments can be used to solve the various problems described in the previous section. Without any arguments the program will output a help text.
 
 |Argument        |Meaning                      
 |----------------|------------------------------
 |-f \<path>| Specifies the path to a single trace file which should be examined. If no further argument is given, the program will solve the [LTL problem](#ltl).                
 |-max \<iteration>|Specifies the maximal size a formula should take. If this argument is specified the [optimizing](#optimizing) problem will be solved. This argument can be used in both the [LTL](#ltl) and [SLTL](#sltl) case.
-|-g | Specifies whether a grammar like in section [CFG](#using-context-free-grammar) is used to constrain the output formulas. This option can only be used in the [LTL](#ltl) case. 
+|-g | Specifies whether a grammar like in section [CFG](#using-context-free-grammar) is used to constrain the output formulas. This option can only be used in the [LTL](#ltl) case.
 |-sltl| This is used if the  [SLTL problem](#sltl) should be solved instead of the [LTL problem](#ltl).
 |-v| Outputs the computation time at the end of the program.
 |-vv| Outputs the computation time at the end of the program as well as the start of each iteration of the algorithm.
 |-h| Outputs the help.
-	
+
 
 # Trace File Format:
 
 ## LTL-Trace File:
 
 Example file:
-	
+
 	1,0;1,1::0
 	---
 	1,0;0,1::0
@@ -159,7 +175,7 @@ Example file:
 	N1>&&,N1,N1;x0;x1
 
 An LTL-file consists of 4 parts (5 parts if a grammar is used). Each of these parts is separated by a line containing only `---`.
-	
+
 **First part:** Represents the traces which should be accepted. In each line there is exactly one trace. The example file only has one accepting trace.
 
 **Second part:** Represents the traces which should be rejected. In each line there is exactly one trace. The example file has three rejecting traces.
@@ -169,11 +185,11 @@ An LTL-file consists of 4 parts (5 parts if a grammar is used). Each of these pa
 **Fourth part:** Contains the maximal depth which should be explored. This is not yet implemented and therefore the content of this line is irrelevant.
 
 **Fifth part:**  Consists of the production rules of a grammar, this part can be omitted if no grammar is used.
-	
+
 ### Traces:
 
 A single trace consists of the values of all variables in the different time steps.
->1,0;0,1;1,1::2 
+>1,0;0,1;1,1::2
 
 This an example of a trace line consisting of two variables. The values of these variables are:
 > x0: 1,0,1*
@@ -191,15 +207,15 @@ The grammar has to use the Nonterminals *N0...Nn* if *n+1* Nonterminals are used
 > N5>||,N1,N3;X,N2;x0
 
 This example represents the production rules: *N5 &rarr; ||(N1,N3)* , *N5 &rarr; X(N2)* and *N5 &rarr; x0*
-	
+
 In the example file the solution without using the grammar would be *G(x0)*. If the grammar is used, the solution is *X(&&(x0,x1))*.
-	
-	
+
+
 
 ## SLTL-Trace Files:
 
 Example file:
-		
+
 	2.0,1.0::0
 	---
 	1.0,1.0::0
@@ -214,7 +230,7 @@ Example file:
 	<(+(s1,s0),c1)
 
 An SLTL-file consists of 5 parts. Each of these parts is separated by the line `---`.
-	
+
 **First part:** Represents the traces which should be accepted. In each line there is exactly one trace. The example file only has one accepting trace.
 
 **Second part:**	Represents the traces which should be rejected. In each line there is exactly one trace. The example file has three rejecting traces.
@@ -228,7 +244,7 @@ An SLTL-file consists of 5 parts. Each of these parts is separated by the line `
 ### Traces:
 
 A single trace line consists of the values of all variables in different time steps.
->1.0,0.2;0.1,1.3;1.6,1.0::2 
+>1.0,0.2;0.1,1.3;1.6,1.0::2
 
 This an example of a trace line consisting of two variables. The values of these variables are:
 
@@ -243,5 +259,5 @@ A weight can be attached to the trace. To do so, add an integer between brackets
 ### Terms:
 
 In part 5 there is a single Term is added in each line. The constants *c0...cn* can be used if *n+1* constants are used overall. The operators that can be used in the terms are *{<,>,=,!(not equal),+,-,\*}* after each of the operators the input has to be written inside of brackets separated by ",".
-	
+
 In the example file a solution would be *(s0=c0)&&(s1+s0 < c1)* with *c0 = 2.0* and *c1 = 4.0*.
